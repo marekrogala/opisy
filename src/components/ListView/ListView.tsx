@@ -1,21 +1,13 @@
 import type { AppAction } from '../../types';
 import { REPORTS_LIST } from '../../data/reports';
-import { escapeHtml } from '../../utils/helpers';
-import { NewExamModal } from './NewExamModal';
 
 interface ListViewProps {
   dispatch: React.Dispatch<AppAction>;
-  modalOpen: boolean;
   onOpenWorkspace: () => void;
+  onNewExam: () => void;
 }
 
-export function ListView({ dispatch, modalOpen, onOpenWorkspace }: ListViewProps) {
-  const handleRowClick = (id: number) => {
-    if (id === 1) {
-      onOpenWorkspace();
-    }
-  };
-
+export function ListView({ onOpenWorkspace, onNewExam }: ListViewProps) {
   return (
     <div className="view" id="viewList">
       <header className="header">
@@ -34,10 +26,7 @@ export function ListView({ dispatch, modalOpen, onOpenWorkspace }: ListViewProps
           </div>
         </div>
         <div className="header__right">
-          <button
-            className="hbtn hbtn--primary"
-            onClick={() => dispatch({ type: 'TOGGLE_MODAL', open: true })}
-          >
+          <button className="hbtn hbtn--primary" onClick={onNewExam}>
             + Nowe badanie
           </button>
         </div>
@@ -46,7 +35,7 @@ export function ListView({ dispatch, modalOpen, onOpenWorkspace }: ListViewProps
       <main className="list-main">
         <div className="list-container">
           <h2 className="list-heading">Opisy badań</h2>
-          <div className="reports-table" id="reportsTable">
+          <div className="reports-table">
             {REPORTS_LIST.map(r => {
               const badgeClass = r.status === 'done' ? 'status-badge--done' : 'status-badge--inprogress';
               const badgeText = r.status === 'done' ? 'Zakończony' : 'W trakcie';
@@ -55,19 +44,14 @@ export function ListView({ dispatch, modalOpen, onOpenWorkspace }: ListViewProps
                 <div
                   key={r.id}
                   className={`report-row ${activeClass}`}
-                  data-report-id={r.id}
-                  onClick={() => handleRowClick(r.id)}
+                  onClick={() => r.id === 1 && onOpenWorkspace()}
                 >
                   <div className="report-row__datetime">
                     {r.date}<span>{r.time}</span>
                   </div>
                   <div className="report-row__info">
-                    <div className="report-row__patient"
-                      dangerouslySetInnerHTML={{ __html: escapeHtml(r.patient) }}
-                    />
-                    <div className="report-row__exam"
-                      dangerouslySetInnerHTML={{ __html: escapeHtml(r.exam) }}
-                    />
+                    <div className="report-row__patient">{r.patient}</div>
+                    <div className="report-row__exam">{r.exam}</div>
                   </div>
                   <span className={`status-badge ${badgeClass}`}>{badgeText}</span>
                 </div>
@@ -76,10 +60,6 @@ export function ListView({ dispatch, modalOpen, onOpenWorkspace }: ListViewProps
           </div>
         </div>
       </main>
-
-      {modalOpen && (
-        <NewExamModal dispatch={dispatch} onOpenWorkspace={onOpenWorkspace} />
-      )}
     </div>
   );
 }

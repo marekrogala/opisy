@@ -11,15 +11,15 @@ interface WorkspaceViewProps {
   state: AppState;
   dispatch: React.Dispatch<AppAction>;
   onShowToast: (msg: string) => void;
+  autoDemo?: boolean;
 }
 
-export function WorkspaceView({ state, dispatch, onShowToast }: WorkspaceViewProps) {
+export function WorkspaceView({ state, dispatch, onShowToast, autoDemo = false }: WorkspaceViewProps) {
   const transcriptRef = useRef<HTMLDivElement>(null);
   const sectionRefs = useRef<Map<string, HTMLParagraphElement>>(new Map());
   const manualStopRef = useRef(false);
   const micLevelRef = useRef<HTMLSpanElement>(null);
 
-  // Sync manualStop ref with state
   useEffect(() => {
     manualStopRef.current = state.manualStop;
   }, [state.manualStop]);
@@ -31,10 +31,8 @@ export function WorkspaceView({ state, dispatch, onShowToast }: WorkspaceViewPro
     micLevelRef,
   });
 
-  // Speech recognition for real (non-demo) mode
   const speech = useSpeechRecognition({
     onResult: (text, _isFinal) => {
-      // Update interim display
       const interim = document.getElementById('tpInterim');
       if (interim) interim.textContent = text;
     },
@@ -59,14 +57,6 @@ export function WorkspaceView({ state, dispatch, onShowToast }: WorkspaceViewPro
         if (ok) {
           dispatch({ type: 'SET_RECORDING', value: true });
           window.dispatchEvent(new CustomEvent('mic-status', { detail: { statusText: 'Nagrywam…', active: true } }));
-        } else {
-          // Fallback
-          dispatch({ type: 'SET_RECORDING', value: true });
-          window.dispatchEvent(new CustomEvent('mic-status', { detail: { statusText: 'Słucham…', active: true } }));
-          setTimeout(() => {
-            dispatch({ type: 'SET_RECORDING', value: false });
-            window.dispatchEvent(new CustomEvent('mic-status', { detail: { statusText: 'Gotowy', active: false } }));
-          }, 1800);
         }
       } else {
         onShowToast('Przeglądarka nie obsługuje rozpoznawania mowy');
@@ -74,7 +64,11 @@ export function WorkspaceView({ state, dispatch, onShowToast }: WorkspaceViewPro
     }
   }, [state.storyRunning, state.isRecording, speech, dispatch, onShowToast]);
 
-  // Push-to-talk spacebar handler
+  const handleStartDictation = useCallback(() => {
+    startDemo();
+  }, [startDemo]);
+
+  // Push-to-talk spacebar
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code !== 'Space' || e.repeat) return;
@@ -110,14 +104,15 @@ export function WorkspaceView({ state, dispatch, onShowToast }: WorkspaceViewPro
     };
   }, [state.isRecording, state.storyRunning, speech, dispatch]);
 
-  // Start demo on mount
+  // Auto-start demo if opened from existing report
   useEffect(() => {
-    const tid = setTimeout(() => {
-      startDemo();
-    }, 1500);
+    if (!autoDemo) return;
+    const tid = setTimeout(() => startDemo(), 1500);
     return () => clearTimeout(tid);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // intentionally run once on mount
+  }, []);
+
+  const showStartButton = !state.storyRunning && !state.storyDone && !autoDemo;
 
   return (
     <div className="view" id="viewWorkspace">
@@ -137,6 +132,8 @@ export function WorkspaceView({ state, dispatch, onShowToast }: WorkspaceViewPro
           patientInfo={state.patientInfo}
           dispatch={dispatch}
           sectionRefs={sectionRefs}
+          showStartButton={showStartButton}
+          onStartDictation={handleStartDictation}
         />
       </div>
 
