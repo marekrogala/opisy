@@ -248,7 +248,7 @@ function initDictation() {
   // auto-run story once
   if (!state.storyRunning && !state.storyDone) {
     state.storyRunning = true;
-    setTimeout(runFullStory, 800);
+    setTimeout(runFullStory, 300);
   }
 }
 
@@ -367,6 +367,7 @@ async function streamTranscript(text, perWordMs = 95) {
   clearTranscriptHint();
   const tr = $('#transcript');
   if (transcriptBlock) {
+    transcriptBlock.classList.add('transcript__done');
     // mark previous as done
     $$('.transcript__word--active', transcriptBlock).forEach(w => {
       w.classList.remove('transcript__word--active');
@@ -532,6 +533,10 @@ function renderPaperPreserve() {
 
 // ============== Story (auto demo) ==============
 async function runFullStory() {
+  // Disable export panel during dictation
+  const exportPanelEl = $('.export-panel');
+  if (exportPanelEl) exportPanelEl.classList.add('export-panel--disabled');
+
   // Disable export buttons during dictation
   const exportBtns = ['#exportNext', '#dlWord', '#dlPdf'];
   exportBtns.forEach(sel => {
@@ -546,7 +551,8 @@ async function runFullStory() {
   }
   state.storyRunning = false;
   state.storyDone = true;
-  // Re-enable export buttons
+  // Re-enable export panel and buttons
+  if (exportPanelEl) exportPanelEl.classList.remove('export-panel--disabled');
   exportBtns.forEach(sel => {
     const el = $(sel);
     if (el) { el.disabled = false; el.title = ''; }

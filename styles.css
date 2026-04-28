@@ -364,6 +364,19 @@ input:focus, button:focus, select:focus, textarea:focus { outline: none; }
 .btn--sm { padding: 6px 10px; font-size: 12.5px; }
 .btn--block { width: 100%; margin-bottom: 6px; }
 
+.demo-notice {
+  background: var(--info-soft);
+  border: 1px solid rgba(29, 78, 216, 0.18);
+  border-radius: 8px;
+  padding: 9px 14px;
+  font-size: 12px;
+  color: var(--info);
+  margin-bottom: 18px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 /* ================ STEP 1: Patient form ================ */
 .form-card {
   background: var(--surface);
@@ -472,13 +485,14 @@ input:focus, button:focus, select:focus, textarea:focus { outline: none; }
   border-radius: var(--radius);
   padding: 16px 16px 14px;
   text-align: left; cursor: pointer;
-  transition: all var(--duration) var(--ease);
+  transition: box-shadow 120ms var(--ease), transform 120ms var(--ease), border-color 120ms var(--ease);
   font-family: inherit;
   position: relative;
   box-shadow: var(--shadow-xs);
   display: flex; flex-direction: column;
   min-height: 110px;
 }
+.tcard:active { transform: scale(0.97); }
 .tcard:hover {
   border-color: var(--border-strong);
   box-shadow: var(--shadow-sm);
@@ -651,6 +665,10 @@ input:focus, button:focus, select:focus, textarea:focus { outline: none; }
 }
 .transcript__word--active { color: var(--warning); font-weight: 500; }
 .transcript__word--done { color: var(--text-muted); }
+.transcript__done {
+  opacity: 0.4;
+  transition: opacity 600ms var(--ease);
+}
 .transcript__break {
   display: block; height: 6px;
   border-bottom: 1px dashed var(--border);
@@ -720,7 +738,7 @@ input:focus, button:focus, select:focus, textarea:focus { outline: none; }
 }
 
 .section {
-  margin-bottom: 4px;
+  margin-bottom: 10px;
   padding: 6px 10px;
   border-radius: 4px;
   border-left: 2px solid transparent;
@@ -741,6 +759,11 @@ input:focus, button:focus, select:focus, textarea:focus { outline: none; }
 .section--locked {
   opacity: 1;
   border-left-color: var(--lock-border);
+  animation: lockSettle 350ms var(--ease);
+}
+@keyframes lockSettle {
+  0% { box-shadow: 0 0 0 4px rgba(4, 120, 87, 0.18); }
+  100% { box-shadow: none; }
 }
 .section__edit {
   position: absolute; top: 4px; right: 8px;
@@ -962,6 +985,10 @@ input:focus, button:focus, select:focus, textarea:focus { outline: none; }
 }
 .ok { color: var(--success); font-weight: 500; }
 
+.export-panel--disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
 .export-panel {
   padding: 12px;
 }
