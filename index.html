@@ -6,282 +6,116 @@
   <title>Opisy — Asystent Radiologa</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
   <script src="https://unpkg.com/docx@8.5.0/build/index.umd.min.js"></script>
   <script src="https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-  <style>
-    .tcard--disabled { opacity: 0.45; pointer-events: none; cursor: default; }
-    .tcard--disabled::after { content: "wkrótce"; position: absolute; top: 10px; right: 10px; font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-subtle); background: var(--surface-subtle); border: 1px solid var(--border); border-radius: 999px; padding: 1px 6px; font-family: 'Inter', sans-serif; }
-  </style>
 </head>
 <body>
   <div id="app" class="app">
 
-    <!-- ============== TITLE BAR (always visible) ============== -->
-    <header class="titlebar">
-      <div class="titlebar__left">
-        <div class="traffic">
-          <span class="traffic__dot traffic__dot--red"></span>
-          <span class="traffic__dot traffic__dot--yellow"></span>
-          <span class="traffic__dot traffic__dot--green"></span>
-        </div>
+    <!-- HEADER BAR -->
+    <header class="header">
+      <div class="header__left">
         <div class="brand">
-          <span class="brand__mark"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="5" fill="white" opacity="0.25"/><path d="M6 1a5 5 0 0 1 0 10V1z" fill="white"/></svg></span>
+          <span class="brand__mark">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+              <circle cx="6" cy="6" r="5" fill="white" opacity="0.25"/>
+              <path d="M6 1a5 5 0 0 1 0 10V1z" fill="white"/>
+            </svg>
+          </span>
           <span class="brand__name">Opisy</span>
-          <span style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-subtle);background:var(--surface-subtle);border:1px solid var(--border);border-radius:999px;padding:1px 6px;margin-left:6px;">demo</span>
-        </div>
-        <div class="titlebar__doc">
-          <span class="titlebar__doc-name" id="docName">Nowy opis</span>
-          <span class="titlebar__sep">·</span>
-          <span class="titlebar__patient" id="docPatient">—</span>
+          <span class="demo-pill">DEMO</span>
         </div>
       </div>
-      <div class="titlebar__right">
-        <span class="save-chip" id="saveChip">
-          <span class="save-chip__dot"></span>
-          <span id="saveChipText">Zapisane teraz</span>
-        </span>
-        <button class="iconbtn" id="restartBtn" title="Uruchom demo od nowa">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> <span class="iconbtn__label">Restart demo</span>
+
+      <div class="header__center">
+        <div class="patient-info">
+          <span class="patient-info__name" id="patientName">Anna Kowalska</span>
+          <span class="patient-info__arrow">→</span>
+          <span class="patient-info__anon" id="patientAnon">Pacjent #4471</span>
+          <span class="patient-info__sep">·</span>
+          <select class="tpl-select" id="tplSelect">
+            <option value="mr_kolano_prawe">MR kolana prawego</option>
+            <option value="mr_kolano_lewe" disabled>MR kolana lewego</option>
+            <option value="mr_bark" disabled>MR barku</option>
+            <option value="mr_kregoslup_ls" disabled>MR kręgosłupa L-S</option>
+            <option value="mr_skok" disabled>MR stawu skokowego</option>
+            <option value="mr_biodro" disabled>MR stawu biodrowego</option>
+            <option value="usg_brzuch" disabled>USG jamy brzusznej</option>
+            <option value="tk_glowa" disabled>TK głowy</option>
+            <option value="tk_klatka" disabled>TK klatki piersiowej</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="header__right">
+        <button class="hbtn hbtn--ghost" id="restartBtn">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          Restart
+        </button>
+        <button class="hbtn hbtn--ghost" id="dlWord">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          Word
+        </button>
+        <button class="hbtn hbtn--primary" id="dlPdf">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Pobierz PDF
         </button>
       </div>
     </header>
 
-    <div class="app__body">
+    <!-- MAIN TWO-COLUMN AREA -->
+    <div class="workspace">
 
-      <!-- ============== SIDE RAIL (steps) ============== -->
-      <nav class="rail">
-        <div class="rail__steps">
-          <button class="rail__step" data-step="patient">
-            <span class="rail__num">1</span>
-            <span class="rail__label">Pacjent</span>
-          </button>
-          <button class="rail__step" data-step="template">
-            <span class="rail__num">2</span>
-            <span class="rail__label">Szablon</span>
-          </button>
-          <button class="rail__step" data-step="dictation">
-            <span class="rail__num">3</span>
-            <span class="rail__label">Dyktowanie</span>
-          </button>
-          <button class="rail__step" data-step="export">
-            <span class="rail__num">4</span>
-            <span class="rail__label">Eksport</span>
-          </button>
+      <!-- LEFT: Transcript panel -->
+      <aside class="transcript-panel">
+        <div class="tp-header">
+          <span class="tp-title">Transkrypcja</span>
+          <span class="tp-live" id="liveDot"></span>
         </div>
-        <div class="rail__bottom">
-          <div class="rail__privacy">
-            <div class="rail__privacy-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
-            <div>
-              <div class="rail__privacy-title">Tryb prywatny</div>
-              <div class="rail__privacy-sub">Whisper lokalnie · LLM zero-retention</div>
-            </div>
-          </div>
+        <div class="transcript" id="transcript">
+          <div class="transcript__empty">Tu pojawią się słowa, które dyktuje radiolog…</div>
         </div>
-      </nav>
+      </aside>
 
-      <!-- ============== MAIN WORKAREA ============== -->
-      <main class="workarea">
-
-        <!-- ============== STEP 1: PATIENT ============== -->
-        <section class="step" data-screen="patient">
-          <div class="step__inner step__inner--narrow">
-            <div class="step__head">
-              <h2>Dane pacjenta</h2>
-              <p class="step__sub">Wprowadź dane do karty. Imię, nazwisko i PESEL zostaną zanonimizowane przed wysłaniem do modelu językowego.</p>
-            </div>
-
-            <div class="form-card">
-              <div class="form-row">
-                <label>
-                  <span class="form-label">Imię</span>
-                  <div class="anon-input">
-                    <input type="text" id="fName" value="Anna" autocomplete="off" />
-                    <span class="anon-chip" id="fNameAnon">→ [zanonimizowano]</span>
-                  </div>
-                </label>
-                <label>
-                  <span class="form-label">Nazwisko</span>
-                  <div class="anon-input">
-                    <input type="text" id="lName" value="Kowalska" autocomplete="off" />
-                    <span class="anon-chip" id="lNameAnon">→ [zanonimizowano]</span>
-                  </div>
-                </label>
-              </div>
-
-              <div class="form-row">
-                <label>
-                  <span class="form-label">PESEL</span>
-                  <div class="anon-input">
-                    <input type="text" id="pesel" value="84062512345" inputmode="numeric" maxlength="11" />
-                    <span class="anon-chip" id="peselAnon">→ Pacjent #4471</span>
-                  </div>
-                </label>
-                <label>
-                  <span class="form-label">Typ badania</span>
-                  <select id="examType">
-                    <option value="mr_kolano_prawe">MR kolana prawego</option>
-                    <option value="mr_kolano_lewe">MR kolana lewego</option>
-                    <option value="mr_bark">MR barku</option>
-                    <option value="mr_kregoslup_ls">MR kręgosłupa L-S</option>
-                    <option value="mr_skok">MR stawu skokowego</option>
-                    <option value="usg_brzuch">USG jamy brzusznej</option>
-                    <option value="tk_glowa">TK głowy</option>
-                  </select>
-                </label>
-              </div>
-
-              <div class="form-row">
-                <label class="form-row__full">
-                  <span class="form-label">Skierowanie / wskazanie</span>
-                  <input type="text" id="refer" value="Ból kolana, podejrzenie uszkodzenia łąkotki przyśrodkowej. Uraz skrętny 3 tyg. temu." />
-                </label>
-              </div>
-
-              <div class="form-row">
-                <label>
-                  <span class="form-label">Lekarz</span>
-                  <input type="text" id="doctorName" value="dr Kowalska" autocomplete="off" />
-                </label>
-              </div>
-
-              <div class="form-foot">
-                <div class="form-foot__hint">
-                  <span class="form-foot__icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
-                  Po kliknięciu „Dalej" dane osobowe nie opuszczają Twojego komputera. Do AI trafia <strong><span id="footerAnonId">Pacjent #4471</span></strong>.
-                </div>
-                <button class="btn btn--primary btn--lg" id="patientNext">Dalej →</button>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- ============== STEP 2: TEMPLATE ============== -->
-        <section class="step" data-screen="template" hidden>
-          <div class="step__inner">
-            <div class="step__head step__head--row">
-              <div>
-                <h2>Wybierz szablon</h2>
-                <p class="step__sub">Twoje szablony są wgrane lokalnie. Wybierz badanie, które właśnie opisujesz.</p>
-              </div>
-              <input type="search" class="search" placeholder="Szukaj szablonu…" id="tplSearch" />
-            </div>
-
-            <div class="tpl-grid" id="tplGrid"></div>
-          </div>
-        </section>
-
-        <!-- ============== STEP 3: DICTATION ============== -->
-        <section class="step step--full" data-screen="dictation" hidden>
-          <div class="dict">
-
-            <!-- LEFT: progress + live transcript -->
-            <aside class="dict__left">
-              <div class="panel">
-                <div class="panel__head">
-                  <span class="panel__title">Sekcje opisu</span>
-                  <span class="panel__hint" id="sectionCount">0 / 0</span>
-                </div>
-                <ul class="seclist" id="sectionList"></ul>
-              </div>
-
-              <div class="panel panel--transcript">
-                <div class="panel__head">
-                  <span class="panel__title">Transkrypcja na żywo</span>
-                  <span class="livedot" id="liveDot"></span>
-                </div>
-                <div class="transcript" id="transcript">
-                  <div class="transcript__empty">Tu pojawią się słowa, które dyktujesz…</div>
-                </div>
-              </div>
-            </aside>
-
-            <!-- CENTER: report document -->
-            <main class="dict__center">
-              <div class="paper" id="paper">
-                <header class="paper__head">
-                  <h1 id="paperTitle">REZONANS MAGNETYCZNY KOLANA PRAWEGO</h1>
-                  <div class="paper__meta" id="paperMeta">
-                    Pacjent: Pacjent #4471 · Data badania: dziś · Lekarz: —
-                  </div>
-                </header>
-                <div id="paperBody"></div>
-              </div>
-            </main>
-
-            <!-- RIGHT: mic + stats + export -->
-            <aside class="dict__right">
-              <div class="panel mic-panel">
-                <button class="mic" id="micBtn">
-                  <div class="mic__halo"></div>
-                  <div class="mic__core">
-                    <span class="mic__icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="1" width="6" height="11" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="21" x2="12" y2="17"/></svg></span>
-                  </div>
-                </button>
-                <div class="mic__status" id="micStatus">Gotowy</div>
-                <div class="mic__hint">
-                  Kliknij lub trzymaj <kbd>SPACJA</kbd>.
-                  Demo startuje automatycznie.
-                </div>
-                <div class="mic__level"><span id="micLevel"></span></div>
-              </div>
-
-
-              <div class="panel export-panel">
-                <div class="panel__head"><span class="panel__title">Eksport</span></div>
-                <button class="btn btn--primary btn--block" id="exportNext">Zakończ i wyeksportuj →</button>
-                <button class="btn btn--ghost btn--block btn--sm" id="dlWord"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> Pobierz Word</button>
-                <button class="btn btn--ghost btn--block btn--sm" id="dlPdf"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Pobierz PDF</button>
-              </div>
-            </aside>
-
-          </div>
-        </section>
-
-        <!-- ============== STEP 4: EXPORT ============== -->
-        <section class="step" data-screen="export" hidden>
-          <div class="step__inner">
-            <div class="step__head step__head--row">
-              <div>
-                <h2>Gotowy opis</h2>
-                <p class="step__sub">Sprawdź dokument i pobierz w wybranym formacie.</p>
-              </div>
-              <button class="btn btn--ghost" data-go="dictation">← Wróć do edycji</button>
-            </div>
-
-            <div class="export-grid">
-              <article class="export__paper" id="exportPaper"></article>
-
-              <aside class="export__side">
-                <div class="panel">
-                  <div class="panel__head"><span class="panel__title">Pobierz</span></div>
-                  <button class="btn btn--primary btn--block btn--lg" id="exportWord"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> Pobierz Word (.docx)</button>
-                  <button class="btn btn--secondary btn--block btn--lg" id="exportPdf"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Pobierz PDF</button>
-                </div>
-
-
-                <div class="panel">
-                  <div class="panel__head"><span class="panel__title">Prywatność</span></div>
-                  <ul class="check">
-                    <li><span class="ok">✓</span> Imię, nazwisko, PESEL zanonimizowane przed wysłaniem do AI</li>
-                    <li><span class="ok">✓</span> Whisper lokalnie, LLM w trybie zero-retention</li>
-                    <li><span class="ok">✓</span> Dokument zapisany tylko u Ciebie</li>
-                  </ul>
-                </div>
-
-                <button class="btn btn--ghost btn--block" id="newReport">+ Nowy opis</button>
-              </aside>
-            </div>
-          </div>
-        </section>
-
+      <!-- RIGHT: Report document -->
+      <main class="report-panel">
+        <div class="paper" id="paper">
+          <header class="paper__head">
+            <h1 id="paperTitle">REZONANS MAGNETYCZNY KOLANA PRAWEGO</h1>
+            <div class="paper__meta" id="paperMeta">Pacjent: #4471 · Data: —</div>
+          </header>
+          <div class="paper__body" id="paperBody"></div>
+        </div>
       </main>
+
     </div>
 
-    <!-- toast -->
-    <div class="toast" id="toast" hidden></div>
+    <!-- BOTTOM BAR -->
+    <div class="bottombar">
+      <button class="mic-btn" id="micBtn" title="Start/stop nagrywania">
+        <div class="mic-btn__halo"></div>
+        <div class="mic-btn__core">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="1" width="6" height="11" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="21" x2="12" y2="17"/></svg>
+        </div>
+      </button>
+      <div class="bottombar__meter">
+        <div class="meter-bar"><span id="micLevel"></span></div>
+      </div>
+      <div class="bottombar__status" id="micStatus">Gotowy</div>
+      <div class="bottombar__progress" id="progressText">0 / 12 sekcji</div>
+      <div class="bottombar__spacer"></div>
+      <div class="save-chip">
+        <span class="save-chip__dot"></span>
+        <span id="saveChipText">Zapisane</span>
+      </div>
+    </div>
+
   </div>
+
+  <!-- Toast notification -->
+  <div class="toast" id="toast" hidden></div>
 
   <script src="app.js"></script>
 </body>
