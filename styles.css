@@ -713,55 +713,29 @@ input:focus, button:focus, select:focus, textarea:focus { outline: none; }
 }
 
 .section {
-  margin-bottom: 12px;
-  padding: 8px 12px;
-  border-radius: 6px;
-  border-left: 3px solid transparent;
+  margin-bottom: 4px;
+  padding: 6px 10px;
+  border-radius: 4px;
+  border-left: 2px solid transparent;
   position: relative;
   transition: all 280ms var(--ease);
   scroll-margin-top: 20px;
 }
 .section--pending {
-  opacity: 0.6;
-  font-style: italic;
-}
-.section--pending::after {
-  content: "szablon";
-  position: absolute; top: 8px; right: 10px;
-  font-size: 9.5px; font-weight: 600;
-  text-transform: uppercase; letter-spacing: 0.05em;
-  color: var(--text-subtle);
-  background: var(--surface-subtle);
-  padding: 1px 6px;
-  border-radius: 999px;
-  font-family: 'Inter', sans-serif;
-  font-style: normal;
-  border: 1px solid var(--border);
+  opacity: 0.45;
+  border-left-color: var(--border);
 }
 .section--active {
-  background: rgba(180, 83, 9, 0.04);
+  opacity: 1;
+  background: rgba(180, 83, 9, 0.03);
   border-left-color: var(--warning);
-  box-shadow: 0 0 0 3px rgba(180, 83, 9, 0.06);
 }
 .section--locked {
-  background: var(--lock-tint);
+  opacity: 1;
   border-left-color: var(--lock-border);
 }
-.section--locked::after {
-  content: "🔒 zweryfikowane";
-  position: absolute; top: 8px; right: 10px;
-  font-size: 9.5px; font-weight: 600;
-  text-transform: uppercase; letter-spacing: 0.04em;
-  color: var(--success);
-  background: rgba(4, 120, 87, 0.08);
-  padding: 1px 7px;
-  border-radius: 999px;
-  font-family: 'Inter', sans-serif;
-  font-style: normal;
-  border: 1px solid rgba(4, 120, 87, 0.22);
-}
 .section__edit {
-  position: absolute; top: 6px; right: 10px;
+  position: absolute; top: 4px; right: 8px;
   font-size: 10.5px; padding: 2px 7px;
   background: var(--surface);
   border: 1px solid var(--border);
@@ -773,7 +747,6 @@ input:focus, button:focus, select:focus, textarea:focus { outline: none; }
   font-style: normal;
 }
 .section--locked:hover .section__edit { opacity: 1; }
-.section--locked:hover::after { display: none; }
 .section[contenteditable="true"] { outline: 2px solid var(--info); outline-offset: 2px; }
 
 .section p { margin: 0; }
@@ -789,6 +762,34 @@ input:focus, button:focus, select:focus, textarea:focus { outline: none; }
     margin-bottom: 0;
     border: 0;
   }
+}
+
+/* Paper finale banner */
+.paper__banner {
+  background: var(--success-soft);
+  color: var(--success);
+  border: 1px solid rgba(4, 120, 87, 0.22);
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: 20px;
+  animation: bannerIn 400ms var(--ease);
+}
+@keyframes bannerIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Pulse CTA button */
+.btn--pulse {
+  animation: ctaPulse 1.6s ease-in-out infinite;
+}
+@keyframes ctaPulse {
+  0%, 100% { box-shadow: var(--shadow-xs), inset 0 1px 0 rgba(255,255,255,0.08); }
+  50% { box-shadow: 0 0 0 4px rgba(30, 30, 42, 0.12), var(--shadow-sm), inset 0 1px 0 rgba(255,255,255,0.08); }
 }
 
 /* Diff highlights inside sections */

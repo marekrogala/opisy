@@ -62,6 +62,14 @@ const MASTER_TEMPLATE = {
 // ============== Dictation script ==============
 const DICTATION_SCRIPT = [
   {
+    // Quick early "correction" step — locks immediately, demonstrates lock-after-verify.
+    // Doctor verifies a normal finding upfront; AI must NOT modify this section later.
+    target: 'lakotka_b',
+    transcript: 'łąkotka boczna prawidłowa bez cech uszkodzenia w obu rogach',
+    newText: 'Łąkotka boczna: prawidłowa, bez cech uszkodzenia w rogu przednim ani tylnym.',
+    showLockToast: true,
+  },
+  {
     target: 'lakotka_p',
     transcript: 'róg tylny łąkotki przyśrodkowej skośne przytorebkowe pęknięcie',
     newText: 'Łąkotka przyśrodkowa: w rogu tylnym widoczne skośne, horyzontalno-degeneracyjne pęknięcie przytorebkowe sięgające górnej powierzchni stawowej. Wysokość rogu tylnego zachowana.',
@@ -70,11 +78,18 @@ const DICTATION_SCRIPT = [
     target: 'acl',
     transcript: 'ACL trzeciego stopnia w przyczepie udowym',
     newText: 'Więzadło krzyżowe przednie (ACL): zerwanie III stopnia w przyczepie udowym, z brakiem ciągłości włókien. Włókna pofałdowane, leżą poziomo na płaskowyżu kości piszczelowej. Towarzyszy bone bruise w okolicy przyczepu.',
+    // PCL pending "prawidłowe" stays — separate structure, still relevant clinically.
+    // Drop MCL — once a major ACL rupture is dictated, the generic "MCL/LCL prawidłowe"
+    // line is template noise the AI can prune from yet-unverified content.
+    removeTargets: ['mcl'],
   },
   {
     target: 'kosci',
     transcript: 'obrzęk szpiku kłykieć boczny dwanaście na osiem milimetrów',
     newText: 'Kości tworzące staw: w kłykciu bocznym kości udowej widoczny obszar obrzęku szpiku kostnego (bone bruise) o wymiarach około 12 × 8 mm. Pozostałe kości bez zmian patologicznych.',
+    // Chrząstka still reads "bez cech istotnego uszkodzenia" — redundant pending default once
+    // bone-level pathology is described in same compartment. Prune it.
+    removeTargets: ['chrzastka'],
   },
   {
     target: 'wysiek',
@@ -90,6 +105,10 @@ const DICTATION_SCRIPT = [
       '3. Obszar obrzęku szpiku kostnego (bone bruise) w kłykciu bocznym kości udowej (12 × 8 mm).\n' +
       '4. Niewielki wysięk w jamie stawu.\n' +
       '5. Pozostałe struktury bez istotnych odchyleń od normy.',
+    // Wnioski summarize the rest — drop any remaining pending "prawidłowy/bez zmian" defaults.
+    // pcl is still pending ("prawidłowe"), tkanki is still pending ("bez zmian").
+    // lakotka_b was dictated/locked early so it stays.
+    removeTargets: ['pcl', 'tkanki'],
   },
 ];
 
@@ -408,9 +427,10 @@ async function runDictationStep(step) {
   sec.pending = false;
   sec.locked = true;
   sec.text = step.newText;
+  if (step.showLockToast) showToast('✓ Sekcja zablokowana — model jej nie zmieni');
 
   // implicit cleanup: remove any pending sections that are contradicted
-  applyImplicitCleanup(step.target);
+  await applyImplicitCleanup(step);
 
   renderSections();
   renderPaperPreserve();
@@ -456,25 +476,20 @@ async function applyDiff(targetId, newText) {
   }
 }
 
-// "implicit cleanup" — when a finding is dictated, fade out PENDING contradictory lines
-const CLEANUP_RULES = {
-  // Once meniscus pathology is locked, remove generic lateral menisc placeholder? Keep it (still useful).
-  // Once ACL is dictated as torn, remove pending PCL "prawidłowe" — we keep PCL as it's a separate structure.
-  // But: we drop "Tkanki miękkie" pending if not dictated by end? No, keep as default.
-  // Real example: if doctor dictates obrzęk szpiku in kłykieć boczny — pending kosci is already replaced.
-  // So this rule mainly demonstrates: once "wskazanie" or another section becomes contradictory, it goes.
-};
-
-function applyImplicitCleanup(justLocked) {
-  // demonstration: when ACL is locked with rupture, remove the redundant pending "prawidłowe" hints
-  // by fading out PENDING sections that are clearly redundant.
-  // We'll fade out chrząstka & tkanki later in the story to show AI cleanup.
-  if (justLocked === 'kosci') {
-    // mark "tkanki" as still pending but signal it's "may be removed" — actually we keep it.
-  }
-  if (justLocked === 'wysiek') {
-    // After 4 dictations, fade out one redundant pending: "Łąkotka boczna" stays, but if we want to show AI removing
-    // a now-irrelevant section, we can drop nothing here — keep all to be safe in clinical context.
+async function applyImplicitCleanup(step) {
+  if (!step.removeTargets || !step.removeTargets.length) return;
+  for (const targetId of step.removeTargets) {
+    const sec = state.sections.find(s => s.id === targetId);
+    if (!sec || sec.locked || sec.removed) continue;
+    const el = $(`.section[data-section="${targetId}"]`);
+    if (el) {
+      el.classList.add('section--removing');
+      const li = $(`#sectionList li[data-id="${targetId}"]`);
+      if (li) li.classList.add('removed');
+    }
+    await sleep(750);
+    sec.removed = true;
+    if (el) el.remove();
   }
 }
 
@@ -519,12 +534,31 @@ async function runFullStory() {
   }
   state.storyRunning = false;
   state.storyDone = true;
-  // small celebratory pause
-  await sleep(700);
   setMic(false, 'Opis gotowy ✓');
-  // auto-advance to export after a moment
-  await sleep(1400);
-  if (!state.manualStop) showScreen('export');
+
+  // show finale banner on paper
+  const paper = $('#paper');
+  if (paper) {
+    const banner = document.createElement('div');
+    banner.className = 'paper__banner';
+    const locked = state.sections.filter(s => s.locked).length;
+    const total = state.sections.filter(s => !s.removed).length;
+    const elapsed = state.startTime ? Math.round((Date.now() - state.startTime) / 1000) : 0;
+    banner.innerHTML = `Opis gotowy · ${locked}/${total} zweryfikowane · ${Math.floor(elapsed/60)} min ${elapsed%60} s`;
+    paper.prepend(banner);
+  }
+
+  // pulse the export button
+  const exportBtn = $('#exportNext');
+  if (exportBtn) exportBtn.classList.add('btn--pulse');
+
+  // update mic hint
+  const hint = $('.mic__hint');
+  if (hint) hint.innerHTML = 'Demo zakończone. Kliknij <strong>Zakończ i wyeksportuj</strong> lub poczekaj.';
+
+  // auto-advance after 6s unless user already navigated
+  await sleep(6000);
+  if (!state.manualStop && state.currentScreen === 'dictation') showScreen('export');
 }
 
 // ============== Manual mic mode ==============
@@ -594,8 +628,9 @@ function initExport() {
   $('#statWords').textContent = state.totalDictatedWords;
   const out = ex.sections.map(s => s.text.split(/\s+/).filter(Boolean).length).reduce((a,b)=>a+b,0);
   $('#statOutput').textContent = out;
-  const saved = Math.max(0, Math.round((out * 0.6 - state.totalDictatedWords) / 25));
-  $('#statSave').textContent = `~${saved + 6} min`;
+  const manualMins = Math.max(elapsed + 180, 480);
+  const savedSec = manualMins - elapsed;
+  $('#statSave').textContent = `~${Math.round(savedSec / 60)} min`;
 }
 
 // ============== Real downloads ==============
@@ -663,7 +698,44 @@ async function downloadWord() {
   showToast('Plik Word zapisany.');
 }
 
-function downloadPdf() {
+let _fontBase64Cache = null;
+async function loadPolishFont() {
+  if (_fontBase64Cache) return _fontBase64Cache;
+  try {
+    const resp = await fetch('https://cdn.jsdelivr.net/npm/dejavu-fonts-ttf@2.37.3/ttf/DejaVuSans.ttf');
+    const buf = await resp.arrayBuffer();
+    const bytes = new Uint8Array(buf);
+    let binary = '';
+    for (let i = 0; i < bytes.length; i += 4096) {
+      binary += String.fromCharCode.apply(null, bytes.subarray(i, i + 4096));
+    }
+    _fontBase64Cache = btoa(binary);
+    return _fontBase64Cache;
+  } catch (e) {
+    console.warn('Polish font load failed, falling back to Helvetica:', e);
+    return null;
+  }
+}
+
+let _fontBoldBase64Cache = null;
+async function loadPolishFontBold() {
+  if (_fontBoldBase64Cache) return _fontBoldBase64Cache;
+  try {
+    const resp = await fetch('https://cdn.jsdelivr.net/npm/dejavu-fonts-ttf@2.37.3/ttf/DejaVuSans-Bold.ttf');
+    const buf = await resp.arrayBuffer();
+    const bytes = new Uint8Array(buf);
+    let binary = '';
+    for (let i = 0; i < bytes.length; i += 4096) {
+      binary += String.fromCharCode.apply(null, bytes.subarray(i, i + 4096));
+    }
+    _fontBoldBase64Cache = btoa(binary);
+    return _fontBoldBase64Cache;
+  } catch (e) {
+    return null;
+  }
+}
+
+async function downloadPdf() {
   if (typeof window.jspdf === 'undefined') { showToast('Biblioteka jsPDF się nie załadowała.'); return; }
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit: 'pt', format: 'a4' });
@@ -675,20 +747,29 @@ function downloadPdf() {
 
   const ex = buildExportText();
 
-  // Note: default jsPDF Helvetica supports Latin-1; Polish diacritics may render imperfectly.
-  // We apply replacements as a fallback so output remains readable.
-  const polishSafe = (txt) => txt; // jsPDF handles most Latin-Ext OK with Helvetica in v2.5.1
+  const fontB64 = await loadPolishFont();
+  const boldB64 = await loadPolishFontBold();
+  let fontName = 'helvetica';
+  if (fontB64) {
+    doc.addFileToVFS('DejaVuSans.ttf', fontB64);
+    doc.addFont('DejaVuSans.ttf', 'DejaVuSans', 'normal');
+    if (boldB64) {
+      doc.addFileToVFS('DejaVuSans-Bold.ttf', boldB64);
+      doc.addFont('DejaVuSans-Bold.ttf', 'DejaVuSans', 'bold');
+    }
+    fontName = 'DejaVuSans';
+  }
 
-  doc.setFont('helvetica', 'bold');
+  doc.setFont(fontName, 'bold');
   doc.setFontSize(13);
-  const titleLines = doc.splitTextToSize(polishSafe(ex.title), usableW);
+  const titleLines = doc.splitTextToSize(ex.title, usableW);
   doc.text(titleLines, pageW / 2, y, { align: 'center' });
   y += 18 * titleLines.length;
 
-  doc.setFont('helvetica', 'normal');
+  doc.setFont(fontName, 'normal');
   doc.setFontSize(9);
   doc.setTextColor(110);
-  doc.text(polishSafe(`Pacjent: ${ex.patient}    Data: ${ex.date}    Lekarz: dr Kowalska`), pageW / 2, y, { align: 'center' });
+  doc.text(`Pacjent: ${ex.patient}    Data: ${ex.date}    Lekarz: dr Kowalska`, pageW / 2, y, { align: 'center' });
   y += 18;
 
   doc.setDrawColor(180);
@@ -699,8 +780,8 @@ function downloadPdf() {
   doc.setFontSize(11);
 
   const writeParagraph = (text, opts = {}) => {
-    if (opts.bold) doc.setFont('helvetica', 'bold'); else doc.setFont('helvetica', 'normal');
-    const lines = doc.splitTextToSize(polishSafe(text), usableW);
+    if (opts.bold) doc.setFont(fontName, 'bold'); else doc.setFont(fontName, 'normal');
+    const lines = doc.splitTextToSize(text, usableW);
     for (const line of lines) {
       if (y > pageH - margin) { doc.addPage(); y = margin; }
       doc.text(line, margin, y);
@@ -722,9 +803,9 @@ function downloadPdf() {
 
   y += 24;
   if (y > pageH - margin - 20) { doc.addPage(); y = margin; }
-  doc.setFont('helvetica', 'italic');
+  doc.setFont(fontName, 'normal');
   doc.setFontSize(10);
-  doc.text(polishSafe('dr Kowalska, radiolog'), pageW - margin, y, { align: 'right' });
+  doc.text('dr Kowalska, radiolog', pageW - margin, y, { align: 'right' });
 
   doc.save(makeFileName('pdf'));
   showToast('Plik PDF zapisany.');
