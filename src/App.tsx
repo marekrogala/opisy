@@ -34,7 +34,7 @@ export function App() {
       )}
       {state.currentView === 'workspace' && (
         <WorkspaceView
-          key={Date.now()}
+          key={state.currentView}
           state={state}
           dispatch={dispatch}
           onShowToast={handleShowToast}

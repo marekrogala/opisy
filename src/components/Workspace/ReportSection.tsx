@@ -12,9 +12,10 @@ export const ReportSection = memo(function ReportSection({ section, onTextChange
   const initializedRef = useRef(false);
   const lastSyncedText = useRef(section.text);
 
-  // Sync text from state → DOM only when text changes externally (lock, etc.)
+  // Sync text from state → DOM only when text changes externally
+  // Skip during animation (displayedText is active) to avoid flicker
   useEffect(() => {
-    if (section.removed) return;
+    if (section.removed || section.active) return;
     if (!pRef.current) return;
     if (!initializedRef.current) {
       pRef.current.innerHTML = section.text.replace(/\n/g, '<br/>');
@@ -24,7 +25,7 @@ export const ReportSection = memo(function ReportSection({ section, onTextChange
       pRef.current.innerHTML = section.text.replace(/\n/g, '<br/>');
       lastSyncedText.current = section.text;
     }
-  }, [section.text, section.removed]);
+  }, [section.text, section.removed, section.active]);
 
   // All hooks must be called before any conditional return
   const isAnimating = section.active && section.displayedText !== undefined;
