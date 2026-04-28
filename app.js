@@ -167,7 +167,7 @@ function showScreen(name) {
 
 $$('.rail__step').forEach(btn => {
   btn.addEventListener('click', () => {
-    // allow free navigation only between visited steps
+    if (state.storyRunning) return; // block navigation during auto-demo
     showScreen(btn.dataset.step);
   });
 });
@@ -324,12 +324,21 @@ function renderPaper() {
       const sec = $(`.section[data-section="${sid}"]`);
       if (!sec) return;
       const p = sec.querySelector('p');
-      const isOn = sec.getAttribute('contenteditable') === 'true';
-      sec.setAttribute('contenteditable', isOn ? 'false' : 'true');
-      if (!isOn) p.focus();
-      else {
+      if (p.contentEditable === 'true') {
+        p.contentEditable = 'false';
+        sec.classList.remove('section--editing');
         const obj = state.sections.find(x => x.id === sid);
         if (obj) obj.text = p.innerText.trim();
+      } else {
+        p.contentEditable = 'true';
+        sec.classList.add('section--editing');
+        p.focus();
+        p.addEventListener('blur', () => {
+          p.contentEditable = 'false';
+          sec.classList.remove('section--editing');
+          const obj = state.sections.find(x => x.id === sid);
+          if (obj) obj.text = p.innerText.trim();
+        }, { once: true });
       }
     });
   });
@@ -520,12 +529,21 @@ function renderPaperPreserve() {
       const sec = $(`.section[data-section="${sid}"]`);
       if (!sec) return;
       const p = sec.querySelector('p');
-      const isOn = sec.getAttribute('contenteditable') === 'true';
-      sec.setAttribute('contenteditable', isOn ? 'false' : 'true');
-      if (!isOn) p.focus();
-      else {
+      if (p.contentEditable === 'true') {
+        p.contentEditable = 'false';
+        sec.classList.remove('section--editing');
         const obj = state.sections.find(x => x.id === sid);
         if (obj) obj.text = p.innerText.trim();
+      } else {
+        p.contentEditable = 'true';
+        sec.classList.add('section--editing');
+        p.focus();
+        p.addEventListener('blur', () => {
+          p.contentEditable = 'false';
+          sec.classList.remove('section--editing');
+          const obj = state.sections.find(x => x.id === sid);
+          if (obj) obj.text = p.innerText.trim();
+        }, { once: true });
       }
     });
   });
@@ -760,6 +778,10 @@ async function loadPolishFontBold() {
 
 async function downloadPdf() {
   if (typeof window.jspdf === 'undefined') { showToast('Biblioteka jsPDF się nie załadowała.'); return; }
+  const pdfBtn = $('#exportPdf') || $('#dlPdf');
+  const origText = pdfBtn?.textContent;
+  if (pdfBtn) { pdfBtn.textContent = 'Generuję PDF…'; pdfBtn.disabled = true; }
+  try {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit: 'pt', format: 'a4' });
   const margin = 56;
@@ -831,6 +853,9 @@ async function downloadPdf() {
   doc.text('dr Kowalska, radiolog', pageW - margin, y, { align: 'right' });
 
   doc.save(makeFileName('pdf'));
+  } finally {
+    if (pdfBtn) { pdfBtn.textContent = origText; pdfBtn.disabled = false; }
+  }
   showToast('Plik PDF zapisany.');
 }
 

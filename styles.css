@@ -26,6 +26,10 @@ body {
 
 button, input, select, textarea { font-family: inherit; font-size: inherit; }
 input:focus, button:focus, select:focus, textarea:focus { outline: none; }
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 2px solid var(--info);
+  outline-offset: 2px;
+}
 
 :root {
   --bg: #f4f4f2;
@@ -714,7 +718,7 @@ input:focus, button:focus, select:focus, textarea:focus { outline: none; }
   color: var(--text);
   margin: 0 auto;
   height: fit-content;
-  min-height: 100%;
+  min-height: auto;
 }
 .paper__head {
   border-bottom: 1.5px solid var(--text);
@@ -778,7 +782,8 @@ input:focus, button:focus, select:focus, textarea:focus { outline: none; }
   font-style: normal;
 }
 .section--locked:hover .section__edit { opacity: 1; }
-.section[contenteditable="true"] { outline: 2px solid var(--info); outline-offset: 2px; }
+.section--editing { outline: 2px solid var(--info); outline-offset: 2px; border-radius: 6px; }
+.section--editing p { cursor: text; }
 
 .section p { margin: 0; }
 .section--removing {
@@ -1097,6 +1102,10 @@ input:focus, button:focus, select:focus, textarea:focus { outline: none; }
 @media (max-width: 1180px) {
   .dict { grid-template-columns: 240px 1fr 300px; }
   .paper { padding: 40px 48px 60px; }
+}
+@media (max-width: 1100px) {
+  .dict { grid-template-columns: 220px 1fr 280px; }
+  .paper { padding: 32px 40px 48px; }
 }
 @media (max-width: 980px) {
   .rail { width: 56px; }
