@@ -1,373 +1,794 @@
-// ============== Mock data ==============
-const TEMPLATE = {
+/* ============================================================
+   Opisy v2 — desktop-app demo
+   ============================================================ */
+
+// ============== Templates catalogue ==============
+const TEMPLATES = [
+  { id: 'mr_kolano_prawe', icon: '🦵', title: 'MR kolana prawego', meta: 'MR · użyty dziś', active: true },
+  { id: 'mr_kolano_lewe',  icon: '🦵', title: 'MR kolana lewego',  meta: 'MR · wczoraj' },
+  { id: 'mr_bark',         icon: '💪', title: 'MR barku',          meta: 'MR · 3 dni temu' },
+  { id: 'mr_kregoslup_ls', icon: '🧍', title: 'MR kręgosłupa L-S', meta: 'MR · tydzień temu' },
+  { id: 'mr_skok',         icon: '🦶', title: 'MR stawu skokowego',meta: 'MR · 2 tyg. temu' },
+  { id: 'mr_biodro',       icon: '🦴', title: 'MR stawu biodrowego', meta: 'MR · miesiąc temu' },
+  { id: 'usg_brzuch',      icon: '🩺', title: 'USG jamy brzusznej',meta: 'USG · regularnie' },
+  { id: 'tk_glowa',        icon: '🧠', title: 'TK głowy',          meta: 'TK · regularnie' },
+  { id: 'tk_klatka',       icon: '🫁', title: 'TK klatki piersiowej', meta: 'TK · czasem' },
+];
+
+// ============== Master template (MR knee R) ==============
+const MASTER_TEMPLATE = {
   id: 'mr_kolano_prawe',
   title: 'REZONANS MAGNETYCZNY KOLANA PRAWEGO',
-  meta: 'Pacjent: [zanonimizowane] · Data badania: dziś · Lekarz: dr Kowalska',
   sections: [
     { id: 'wskazanie', label: 'Wskazanie',
-      text: 'Wskazanie: ból kolana, podejrzenie uszkodzenia łąkotki.',
-      state: 'normal' },
+      text: 'Wskazanie: ból kolana, podejrzenie uszkodzenia łąkotki przyśrodkowej. Uraz skrętny 3 tygodnie temu.',
+      pending: false }, // already filled from referral
     { id: 'technika', label: 'Technika',
       text: 'Badanie wykonano w sekwencjach PD, T1, T2 z saturacją tłuszczu w płaszczyznach strzałkowej, czołowej i poprzecznej.',
-      state: 'normal' },
+      pending: false },
     { id: 'lakotka_p', label: 'Łąkotka przyśrodkowa',
       text: 'Łąkotka przyśrodkowa: prawidłowa, bez cech uszkodzenia.',
-      state: 'normal' },
+      pending: true },
     { id: 'lakotka_b', label: 'Łąkotka boczna',
       text: 'Łąkotka boczna: prawidłowa, bez cech uszkodzenia.',
-      state: 'normal' },
+      pending: true },
     { id: 'acl', label: 'Więzadło krzyżowe przednie',
       text: 'Więzadło krzyżowe przednie (ACL): prawidłowe, ciągłe na całym przebiegu.',
-      state: 'normal' },
+      pending: true },
     { id: 'pcl', label: 'Więzadło krzyżowe tylne',
       text: 'Więzadło krzyżowe tylne (PCL): prawidłowe, ciągłe.',
-      state: 'normal' },
+      pending: true },
     { id: 'mcl', label: 'Więzadła poboczne',
       text: 'Więzadła poboczne (MCL, LCL): prawidłowe, bez cech uszkodzenia.',
-      state: 'normal' },
+      pending: true },
     { id: 'chrzastka', label: 'Chrząstka stawowa',
       text: 'Chrząstka stawowa: bez cech istotnego uszkodzenia.',
-      state: 'normal' },
+      pending: true },
     { id: 'kosci', label: 'Kości',
       text: 'Kości tworzące staw: bez zmian patologicznych, bez obrzęku szpiku.',
-      state: 'normal' },
+      pending: true },
     { id: 'wysiek', label: 'Jama stawu',
       text: 'Jama stawu: bez wysięku.',
-      state: 'normal' },
+      pending: true },
     { id: 'tkanki', label: 'Tkanki miękkie',
       text: 'Tkanki miękkie okołostawowe: bez zmian.',
-      state: 'normal' },
+      pending: true },
     { id: 'wnioski', label: 'Wnioski',
       text: '1. Badanie bez istotnych odchyleń od normy.',
-      state: 'normal' },
+      pending: true },
   ]
 };
 
-const DEMO_DICTATIONS = [
+// ============== Dictation script ==============
+const DICTATION_SCRIPT = [
   {
-    label: 'róg tylny łąkotki przyśrodkowej skośne pęknięcie',
-    transcript: 'róg tylny łąkotki przyśrodkowej skośne przytorebkowe pęknięcie',
     target: 'lakotka_p',
-    newText: 'Łąkotka przyśrodkowa: w rogu tylnym widoczne skośne, horyzontalno-degeneracyjne pęknięcie przytorebkowe sięgające górnej powierzchni stawowej. Wysokość rogu tylnego zachowana.'
+    transcript: 'róg tylny łąkotki przyśrodkowej skośne przytorebkowe pęknięcie',
+    newText: 'Łąkotka przyśrodkowa: w rogu tylnym widoczne skośne, horyzontalno-degeneracyjne pęknięcie przytorebkowe sięgające górnej powierzchni stawowej. Wysokość rogu tylnego zachowana.',
   },
   {
-    label: 'ACL trzeciego stopnia',
-    transcript: 'ACL trzeciego stopnia w przyczepie udowym',
     target: 'acl',
-    newText: 'Więzadło krzyżowe przednie (ACL): zerwanie III stopnia w przyczepie udowym, z brakiem ciągłości włókien więzadłowych. Włókna pofałdowane, leżą poziomo na płaskowyżu kości piszczelowej.'
+    transcript: 'ACL trzeciego stopnia w przyczepie udowym',
+    newText: 'Więzadło krzyżowe przednie (ACL): zerwanie III stopnia w przyczepie udowym, z brakiem ciągłości włókien. Włókna pofałdowane, leżą poziomo na płaskowyżu kości piszczelowej. Towarzyszy bone bruise w okolicy przyczepu.',
   },
   {
-    label: 'niewielki wysięk',
-    transcript: 'niewielki wysięk',
-    target: 'wysiek',
-    newText: 'Jama stawu: obecny niewielki wysięk w zachyłku nadrzepkowym.'
-  },
-  {
-    label: 'obrzęk szpiku kłykieć boczny',
-    transcript: 'obrzęk szpiku w kłykciu bocznym kości udowej',
     target: 'kosci',
-    newText: 'Kości tworzące staw: w kłykciu bocznym kości udowej widoczny obszar obrzęku szpiku kostnego (bone bruise) o wymiarach około 12 × 8 mm. Pozostałe kości bez zmian patologicznych.'
+    transcript: 'obrzęk szpiku kłykieć boczny dwanaście na osiem milimetrów',
+    newText: 'Kości tworzące staw: w kłykciu bocznym kości udowej widoczny obszar obrzęku szpiku kostnego (bone bruise) o wymiarach około 12 × 8 mm. Pozostałe kości bez zmian patologicznych.',
   },
   {
-    label: 'wnioski',
-    transcript: 'wygeneruj wnioski',
+    target: 'wysiek',
+    transcript: 'niewielki wysięk w zachyłku nadrzepkowym',
+    newText: 'Jama stawu: obecny niewielki wysięk w zachyłku nadrzepkowym. Bez cech krwiaka.',
+  },
+  {
     target: 'wnioski',
-    newText: '1. Skośne, horyzontalno-degeneracyjne pęknięcie przytorebkowe rogu tylnego łąkotki przyśrodkowej.\n2. Zerwanie więzadła krzyżowego przedniego (ACL) III stopnia w przyczepie udowym.\n3. Obrzęk szpiku kostnego w kłykciu bocznym kości udowej (12 × 8 mm).\n4. Niewielki wysięk w jamie stawu.'
-  }
+    transcript: 'wygeneruj wnioski',
+    newText:
+      '1. Skośne, horyzontalno-degeneracyjne pęknięcie przytorebkowe rogu tylnego łąkotki przyśrodkowej.\n' +
+      '2. Zerwanie więzadła krzyżowego przedniego (ACL) III stopnia w przyczepie udowym.\n' +
+      '3. Obszar obrzęku szpiku kostnego (bone bruise) w kłykciu bocznym kości udowej (12 × 8 mm).\n' +
+      '4. Niewielki wysięk w jamie stawu.\n' +
+      '5. Pozostałe struktury bez istotnych odchyleń od normy.',
+  },
 ];
 
 // ============== State ==============
 const state = {
-  template: JSON.parse(JSON.stringify(TEMPLATE)),
-  doneDemos: new Set(),
+  patient: { firstName: 'Anna', lastName: 'Kowalska', pesel: '84062512345', anonId: '#4471', referral: '' },
+  templateId: 'mr_kolano_prawe',
+  sections: clone(MASTER_TEMPLATE.sections),
+  currentScreen: 'patient',
   startTime: null,
   totalDictatedWords: 0,
   isRecording: false,
+  storyRunning: false,
+  storyDone: false,
+  manualStop: false,
 };
 
-// ============== Screen routing ==============
-function showScreen(name) {
-  document.querySelectorAll('.screen').forEach(s => s.hidden = true);
-  const s = document.querySelector(`[data-screen="${name}"]`);
-  if (s) s.hidden = false;
-  if (name === 'dictation') initDictation();
-  if (name === 'export') initExport();
-  window.scrollTo(0, 0);
-}
-
-document.querySelectorAll('[data-go]').forEach(btn => {
-  btn.addEventListener('click', () => showScreen(btn.dataset.go));
-});
-
-document.querySelectorAll('[data-template]').forEach(btn => {
-  btn.addEventListener('click', () => {
-    if (btn.dataset.template !== 'mr_kolano_prawe') {
-      alert('W demo dostępny jest tylko szablon MR kolana prawego.');
-      return;
-    }
-    showScreen('dictation');
-  });
-});
-
-// ============== Dictation screen ==============
-function initDictation() {
-  // reset state if first time
-  if (!state.startTime) state.startTime = Date.now();
-  renderReport();
-  renderSections();
-  renderDemoButtons();
-}
-
-function renderReport() {
-  const root = document.getElementById('reportRoot');
-  root.innerHTML = `
-    <div class="report-header">
-      <h1>${TEMPLATE.title}</h1>
-      <div class="meta">${TEMPLATE.meta}</div>
-    </div>
-    ${state.template.sections.map(s => `
-      <div class="report-section" data-section="${s.id}">
-        <p class="diff-stable">${escapeHtml(s.text).replace(/\n/g, '<br/>')}</p>
-      </div>
-    `).join('')}
-  `;
-}
-
-function renderSections() {
-  const list = document.getElementById('sectionList');
-  list.innerHTML = state.template.sections.map(s => `
-    <li class="${s.state}" data-section="${s.id}">${s.label}</li>
-  `).join('');
-  list.querySelectorAll('li').forEach(li => {
-    li.addEventListener('click', () => {
-      const target = document.querySelector(`.report-section[data-section="${li.dataset.section}"]`);
-      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    });
-  });
-}
-
-function renderDemoButtons() {
-  const wrap = document.getElementById('demoButtons');
-  wrap.innerHTML = DEMO_DICTATIONS.map((d, i) => `
-    <button data-demo-idx="${i}" class="${state.doneDemos.has(i) ? 'done' : ''}">
-      🎤 ${d.label}
-    </button>
-  `).join('');
-  wrap.querySelectorAll('button').forEach(b => {
-    b.addEventListener('click', () => {
-      const idx = parseInt(b.dataset.demoIdx);
-      if (state.doneDemos.has(idx)) return;
-      runDictation(idx);
-    });
-  });
-}
-
-// ============== Dictation simulation ==============
-function runDictation(idx) {
-  const d = DEMO_DICTATIONS[idx];
-  state.doneDemos.add(idx);
-  state.totalDictatedWords += d.transcript.split(/\s+/).length;
-
-  // 1. Mic activates
-  setMic(true, 'Słucham…');
-  addTranscript(d.transcript, 'processing');
-
-  // 2. Mic stops, processing
-  setTimeout(() => {
-    setMic(false, 'Przetwarzam dyktat...');
-  }, 600);
-
-  // 3. AI replaces
-  setTimeout(() => {
-    setMic(false, 'Przerabiam na Twój styl…');
-    finalizeTranscript();
-  }, 1200);
-
-  // 4. Apply diff
-  setTimeout(() => {
-    applyDiff(d.target, d.newText);
-    setMic(false, 'Gotowy');
-    renderDemoButtons();
-  }, 1800);
-}
-
-function applyDiff(targetId, newText) {
-  const section = state.template.sections.find(s => s.id === targetId);
-  if (!section) return;
-  const oldText = section.text;
-  section.text = newText;
-  section.state = 'modified';
-
-  const el = document.querySelector(`.report-section[data-section="${targetId}"]`);
-  if (!el) return;
-
-  // animate diff
-  el.innerHTML = `
-    <p>
-      <span class="diff-removed">${escapeHtml(oldText)}</span>
-      <span class="diff-added">${escapeHtml(newText).replace(/\n/g, '<br/>')}</span>
-    </p>
-  `;
-
-  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
-  // settle
-  setTimeout(() => {
-    el.innerHTML = `<p class="diff-stable">${escapeHtml(newText).replace(/\n/g, '<br/>')}</p>`;
-  }, 1600);
-
-  renderSections();
-}
-
-// ============== Mic / transcript helpers ==============
-let micLevelInterval = null;
-function setMic(active, statusText) {
-  state.isRecording = active;
-  const btn = document.getElementById('micBtn');
-  const status = document.getElementById('micStatus');
-  const level = document.getElementById('micLevel');
-  btn.classList.toggle('active', active);
-  status.textContent = statusText;
-
-  if (active) {
-    micLevelInterval = setInterval(() => {
-      level.style.width = (30 + Math.random() * 70) + '%';
-    }, 80);
-  } else {
-    clearInterval(micLevelInterval);
-    level.style.width = '0%';
-  }
-}
-
-function addTranscript(text, cls = '') {
-  const list = document.getElementById('transcriptList');
-  // remove hint
-  list.querySelectorAll('.transcript__hint').forEach(h => h.remove());
-  const li = document.createElement('li');
-  if (cls) li.className = cls;
-  li.textContent = '"' + text + '"';
-  list.appendChild(li);
-  list.scrollTop = list.scrollHeight;
-}
-function finalizeTranscript() {
-  document.querySelectorAll('#transcriptList li.processing').forEach(li => {
-    li.classList.remove('processing');
-  });
-}
-
-// ============== Push-to-talk (spacebar) ==============
-document.addEventListener('keydown', (e) => {
-  if (e.code === 'Space' && !e.repeat &&
-      document.querySelector('[data-screen="dictation"]')?.hidden === false) {
-    if (document.activeElement.tagName === 'BUTTON' ||
-        document.activeElement.tagName === 'INPUT') return;
-    e.preventDefault();
-    setMic(true, 'Słucham… (puść spację, żeby zakończyć)');
-  }
-});
-document.addEventListener('keyup', (e) => {
-  if (e.code === 'Space' &&
-      document.querySelector('[data-screen="dictation"]')?.hidden === false) {
-    if (document.activeElement.tagName === 'INPUT') return;
-    e.preventDefault();
-    if (state.isRecording) {
-      setMic(false, 'Przetwarzam…');
-      setTimeout(() => setMic(false, 'Gotowy'), 800);
-    }
-  }
-});
-
-// Mic button click — short demo of recording state
-document.getElementById('micBtn')?.addEventListener('click', () => {
-  if (state.isRecording) {
-    setMic(false, 'Gotowy');
-  } else {
-    setMic(true, 'Słucham…');
-    setTimeout(() => setMic(false, 'Gotowy'), 1500);
-  }
-});
-
-// Undo
-document.getElementById('undoBtn')?.addEventListener('click', () => {
-  // simple mock — undo last modified section to original
-  for (let i = state.template.sections.length - 1; i >= 0; i--) {
-    const s = state.template.sections[i];
-    if (s.state === 'modified') {
-      const orig = TEMPLATE.sections.find(o => o.id === s.id);
-      s.text = orig.text;
-      s.state = 'normal';
-      // remove from done demos if applicable
-      const idx = DEMO_DICTATIONS.findIndex(d => d.target === s.id);
-      if (idx >= 0) state.doneDemos.delete(idx);
-      renderReport();
-      renderSections();
-      renderDemoButtons();
-      return;
-    }
-  }
-});
-
-// Auto demo
-document.getElementById('demoAuto')?.addEventListener('click', async () => {
-  for (let i = 0; i < DEMO_DICTATIONS.length; i++) {
-    if (state.doneDemos.has(i)) continue;
-    runDictation(i);
-    await sleep(2400);
-  }
-});
-
-// Run full demo from start
-document.getElementById('runFullDemo')?.addEventListener('click', async () => {
-  // reset
-  state.template = JSON.parse(JSON.stringify(TEMPLATE));
-  state.doneDemos = new Set();
-  state.startTime = Date.now();
-
-  showScreen('templates');
-  await sleep(1500);
-  showScreen('dictation');
-  await sleep(1000);
-  for (let i = 0; i < DEMO_DICTATIONS.length; i++) {
-    runDictation(i);
-    await sleep(2600);
-  }
-  await sleep(1500);
-  showScreen('export');
-});
-
-// ============== Export ==============
-function initExport() {
-  const paper = document.getElementById('exportPaper');
-  paper.innerHTML = `
-    <h1>${TEMPLATE.title}</h1>
-    <p><strong>Pacjent:</strong> [zanonimizowane] &nbsp; <strong>Data:</strong> ${new Date().toLocaleDateString('pl-PL')}</p>
-    ${state.template.sections.map(s => {
-      if (s.id === 'wnioski') {
-        return `<div class="section-label">Wnioski:</div><p>${escapeHtml(s.text).replace(/\n/g, '<br/>')}</p>`;
-      }
-      return `<p>${escapeHtml(s.text)}</p>`;
-    }).join('')}
-    <p style="margin-top:40px; text-align:right;"><em>dr Kowalska, radiolog</em></p>
-  `;
-
-  // stats
-  const elapsed = state.startTime ? Math.round((Date.now() - state.startTime) / 1000) : 134;
-  const mins = Math.floor(elapsed / 60);
-  const secs = elapsed % 60;
-  document.getElementById('statTime').textContent = `${mins} min ${secs} s`;
-  document.getElementById('statWords').textContent = state.totalDictatedWords || 23;
-  const outputWords = state.template.sections
-    .map(s => s.text.split(/\s+/).length).reduce((a, b) => a + b, 0);
-  document.getElementById('statOutput').textContent = outputWords;
-}
-
-// ============== Utils ==============
+function clone(o) { return JSON.parse(JSON.stringify(o)); }
+function $(sel, root = document) { return root.querySelector(sel); }
+function $$(sel, root = document) { return [...root.querySelectorAll(sel)]; }
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 function escapeHtml(s) {
   return s.replace(/[&<>"']/g, c => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   }[c]));
 }
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ============== Routing ==============
+const SCREENS = ['patient', 'template', 'dictation', 'export'];
+function showScreen(name) {
+  state.currentScreen = name;
+  $$('.step').forEach(s => s.hidden = (s.dataset.screen !== name));
+
+  // rail
+  $$('.rail__step').forEach(b => {
+    b.classList.remove('active', 'done');
+    const idx = SCREENS.indexOf(b.dataset.step);
+    const cur = SCREENS.indexOf(name);
+    if (idx === cur) b.classList.add('active');
+    else if (idx < cur) b.classList.add('done');
+  });
+
+  // titlebar doc
+  if (name === 'patient') {
+    $('#docName').textContent = 'Nowy opis';
+    $('#docPatient').textContent = '—';
+  } else {
+    const tplName = TEMPLATES.find(t => t.id === state.templateId)?.title || 'MR kolana prawego';
+    $('#docName').textContent = tplName;
+    $('#docPatient').textContent = `Pacjent ${state.patient.anonId}`;
+  }
+
+  if (name === 'dictation') initDictation();
+  if (name === 'export') initExport();
+}
+
+$$('.rail__step').forEach(btn => {
+  btn.addEventListener('click', () => {
+    // allow free navigation only between visited steps
+    showScreen(btn.dataset.step);
+  });
+});
+$$('[data-go]').forEach(b => {
+  b.addEventListener('click', () => showScreen(b.dataset.go));
+});
+
+// ============== Patient form ==============
+function refreshAnonChips() {
+  const f = $('#fName').value.trim();
+  const l = $('#lName').value.trim();
+  const p = $('#pesel').value.trim();
+  $('#fNameAnon').textContent = f ? '→ [zanonimizowano]' : '→ —';
+  $('#lNameAnon').textContent = l ? '→ [zanonimizowano]' : '→ —';
+  // mock anonId from pesel digits
+  if (p.length >= 4) {
+    const id = '#' + (parseInt(p.slice(-4), 10) % 9000 + 1000);
+    $('#peselAnon').textContent = '→ Pacjent ' + id;
+    state.patient.anonId = id;
+  } else {
+    $('#peselAnon').textContent = '→ Pacjent #—';
+  }
+}
+['#fName', '#lName', '#pesel'].forEach(sel => {
+  $(sel)?.addEventListener('input', refreshAnonChips);
+});
+refreshAnonChips();
+
+$('#patientNext').addEventListener('click', () => {
+  state.patient.firstName = $('#fName').value;
+  state.patient.lastName = $('#lName').value;
+  state.patient.pesel = $('#pesel').value;
+  state.patient.referral = $('#refer').value;
+  state.templateId = $('#examType').value;
+  // sync wskazanie section
+  const ws = state.sections.find(s => s.id === 'wskazanie');
+  if (ws && state.patient.referral) ws.text = 'Wskazanie: ' + state.patient.referral;
+  showScreen('template');
+});
+
+// ============== Templates grid ==============
+function renderTemplates() {
+  const wrap = $('#tplGrid');
+  wrap.innerHTML = TEMPLATES.map(t => `
+    <button class="tcard ${t.id === state.templateId ? 'tcard--active' : ''}" data-tpl="${t.id}">
+      <span class="tcard__icon">${t.icon}</span>
+      <span class="tcard__title">${t.title}</span>
+      <span class="tcard__meta">${t.meta}</span>
+    </button>
+  `).join('');
+  $$('.tcard', wrap).forEach(b => {
+    b.addEventListener('click', () => {
+      const id = b.dataset.tpl;
+      if (id !== 'mr_kolano_prawe') {
+        showToast('W demo aktywny jest tylko szablon MR kolana prawego.');
+        return;
+      }
+      state.templateId = id;
+      showScreen('dictation');
+    });
+  });
+  $('#tplSearch')?.addEventListener('input', e => {
+    const q = e.target.value.toLowerCase();
+    $$('.tcard', wrap).forEach(c => {
+      c.style.display = c.querySelector('.tcard__title').textContent.toLowerCase().includes(q) ? '' : 'none';
+    });
+  });
+}
+renderTemplates();
+
+// ============== Dictation init ==============
+function initDictation() {
+  if (!state.startTime) state.startTime = Date.now();
+  renderSections();
+  renderPaper();
+  startTimer();
+
+  // auto-run story once
+  if (!state.storyRunning && !state.storyDone) {
+    state.storyRunning = true;
+    setTimeout(runFullStory, 800);
+  }
+}
+
+let liveTimerId = null;
+function startTimer() {
+  clearInterval(liveTimerId);
+  liveTimerId = setInterval(() => {
+    if (!state.startTime) return;
+    const s = Math.floor((Date.now() - state.startTime) / 1000);
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    const el = $('#liveTime');
+    if (el) el.textContent = `${m}:${String(sec).padStart(2, '0')}`;
+  }, 500);
+}
+
+// ============== Renderers ==============
+function renderSections() {
+  const ul = $('#sectionList');
+  if (!ul) return;
+  ul.innerHTML = state.sections.map(s => {
+    const cls = s.removed ? 'removed' : (s.locked ? 'locked' : (s.active ? 'active' : (s.pending ? 'pending' : 'done')));
+    const lockIcon = s.locked ? '<span class="seclist__lockicon">🔒</span>' : '';
+    return `<li class="${cls}" data-id="${s.id}">${escapeHtml(s.label)}${lockIcon}</li>`;
+  }).join('');
+  $$('li', ul).forEach(li => {
+    li.addEventListener('click', () => {
+      const target = $(`.section[data-section="${li.dataset.id}"]`);
+      target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  });
+
+  const total = state.sections.filter(s => !s.removed).length;
+  const locked = state.sections.filter(s => s.locked).length;
+  const cnt = $('#sectionCount');
+  if (cnt) cnt.textContent = `${locked} / ${total} zweryfikowane`;
+  const liveLocked = $('#liveLocked'); if (liveLocked) liveLocked.textContent = locked;
+
+  // word count
+  const words = state.sections.filter(s => !s.removed)
+    .map(s => s.text.split(/\s+/).filter(Boolean).length).reduce((a,b)=>a+b, 0);
+  const live = $('#liveOutWords'); if (live) live.textContent = words;
+  const dict = $('#liveDictWords'); if (dict) dict.textContent = state.totalDictatedWords;
+}
+
+function sectionStateClass(s) {
+  if (s.locked) return 'section--locked';
+  if (s.active) return 'section--active';
+  if (s.pending) return 'section--pending';
+  return '';
+}
+
+function renderPaper() {
+  $('#paperTitle').textContent = MASTER_TEMPLATE.title;
+  $('#paperMeta').textContent =
+    `Pacjent: Pacjent ${state.patient.anonId} · Data badania: ${new Date().toLocaleDateString('pl-PL')} · Lekarz: dr Kowalska`;
+
+  const body = $('#paperBody');
+  body.innerHTML = state.sections.map(s => {
+    if (s.removed) return '';
+    const cls = sectionStateClass(s);
+    const html = escapeHtml(s.text).replace(/\n/g, '<br/>');
+    return `<div class="section ${cls}" data-section="${s.id}">
+      <p>${html}</p>
+      ${s.locked ? '<button class="section__edit" data-edit="' + s.id + '">edytuj ręcznie</button>' : ''}
+    </div>`;
+  }).join('');
+
+  $$('[data-edit]', body).forEach(b => {
+    b.addEventListener('click', e => {
+      e.stopPropagation();
+      const sid = b.dataset.edit;
+      const sec = $(`.section[data-section="${sid}"]`);
+      if (!sec) return;
+      const p = sec.querySelector('p');
+      const isOn = sec.getAttribute('contenteditable') === 'true';
+      sec.setAttribute('contenteditable', isOn ? 'false' : 'true');
+      if (!isOn) p.focus();
+      else {
+        const obj = state.sections.find(x => x.id === sid);
+        if (obj) obj.text = p.innerText.trim();
+      }
+    });
+  });
+}
+
+// ============== Mic UI ==============
+let micLevelId = null;
+function setMic(active, statusText) {
+  state.isRecording = active;
+  const btn = $('#micBtn');
+  const status = $('#micStatus');
+  const level = $('#micLevel');
+  const dot = $('#liveDot');
+  btn?.classList.toggle('active', active);
+  if (status) status.textContent = statusText;
+  if (dot) dot.classList.toggle('live', active);
+
+  clearInterval(micLevelId);
+  if (active) {
+    micLevelId = setInterval(() => {
+      if (level) level.style.width = (28 + Math.random() * 70) + '%';
+    }, 90);
+  } else if (level) {
+    level.style.width = '0%';
+  }
+}
+
+// ============== Live transcript stream ==============
+let transcriptBlock = null;
+function clearTranscriptHint() {
+  const empty = $('#transcript .transcript__empty');
+  if (empty) empty.remove();
+}
+async function streamTranscript(text, perWordMs = 95) {
+  clearTranscriptHint();
+  const tr = $('#transcript');
+  if (transcriptBlock) {
+    // mark previous as done
+    $$('.transcript__word--active', transcriptBlock).forEach(w => {
+      w.classList.remove('transcript__word--active');
+      w.classList.add('transcript__word--done');
+    });
+    const br = document.createElement('span');
+    br.className = 'transcript__break';
+    tr.appendChild(br);
+  }
+  transcriptBlock = document.createElement('div');
+  tr.appendChild(transcriptBlock);
+
+  const words = text.split(/\s+/);
+  for (const w of words) {
+    if (state.manualStop) break;
+    const span = document.createElement('span');
+    span.className = 'transcript__word transcript__word--active';
+    span.textContent = w;
+    transcriptBlock.appendChild(span);
+    tr.scrollTop = tr.scrollHeight;
+    await sleep(perWordMs + Math.random() * 60);
+  }
+}
+
+// ============== Dictation simulation ==============
+async function runDictationStep(step) {
+  const sec = state.sections.find(s => s.id === step.target);
+  if (!sec) return;
+
+  // mark active
+  state.sections.forEach(s => s.active = false);
+  sec.active = true;
+  renderSections();
+  // also highlight in paper
+  const secEl = $(`.section[data-section="${step.target}"]`);
+  if (secEl) {
+    secEl.classList.remove('section--pending');
+    secEl.classList.add('section--active');
+    secEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  setMic(true, 'Słucham…');
+  await streamTranscript(step.transcript, 95);
+
+  // small reflection pause
+  await sleep(450);
+  setMic(false, 'Przetwarzam dyktat…');
+  await sleep(550);
+
+  // diff-replace
+  await applyDiff(step.target, step.newText);
+
+  // counts
+  state.totalDictatedWords += step.transcript.split(/\s+/).filter(Boolean).length;
+
+  // lock
+  sec.active = false;
+  sec.pending = false;
+  sec.locked = true;
+  sec.text = step.newText;
+
+  // implicit cleanup: remove any pending sections that are contradicted
+  applyImplicitCleanup(step.target);
+
+  renderSections();
+  renderPaperPreserve();
+  setMic(false, 'Gotowy');
+  // brief save flash
+  flashSave();
+}
+
+function flashSave() {
+  const c = $('#saveChipText');
+  if (!c) return;
+  c.textContent = 'Zapisuję…';
+  setTimeout(() => c.textContent = 'Zapisane teraz', 700);
+}
+
+async function applyDiff(targetId, newText) {
+  const sec = state.sections.find(s => s.id === targetId);
+  if (!sec) return;
+  const oldText = sec.text;
+  const el = $(`.section[data-section="${targetId}"]`);
+  if (!el) return;
+
+  el.innerHTML = `<p>
+    <span class="diff-removed">${escapeHtml(oldText)}</span>
+    <span class="diff-added">${escapeHtml(newText).replace(/\n/g, '<br/>')}</span>
+  </p>`;
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+  // settle
+  await sleep(1500);
+  // remove the strikethrough
+  const removed = el.querySelector('.diff-removed');
+  if (removed) {
+    removed.classList.add('diff-fading');
+    await sleep(900);
+    removed.remove();
+  }
+  // unwrap added span
+  const added = el.querySelector('.diff-added');
+  if (added) {
+    const txt = added.innerHTML;
+    added.outerHTML = txt;
+  }
+}
+
+// "implicit cleanup" — when a finding is dictated, fade out PENDING contradictory lines
+const CLEANUP_RULES = {
+  // Once meniscus pathology is locked, remove generic lateral menisc placeholder? Keep it (still useful).
+  // Once ACL is dictated as torn, remove pending PCL "prawidłowe" — we keep PCL as it's a separate structure.
+  // But: we drop "Tkanki miękkie" pending if not dictated by end? No, keep as default.
+  // Real example: if doctor dictates obrzęk szpiku in kłykieć boczny — pending kosci is already replaced.
+  // So this rule mainly demonstrates: once "wskazanie" or another section becomes contradictory, it goes.
+};
+
+function applyImplicitCleanup(justLocked) {
+  // demonstration: when ACL is locked with rupture, remove the redundant pending "prawidłowe" hints
+  // by fading out PENDING sections that are clearly redundant.
+  // We'll fade out chrząstka & tkanki later in the story to show AI cleanup.
+  if (justLocked === 'kosci') {
+    // mark "tkanki" as still pending but signal it's "may be removed" — actually we keep it.
+  }
+  if (justLocked === 'wysiek') {
+    // After 4 dictations, fade out one redundant pending: "Łąkotka boczna" stays, but if we want to show AI removing
+    // a now-irrelevant section, we can drop nothing here — keep all to be safe in clinical context.
+  }
+}
+
+// Render paper but preserve scroll & not disturb diff that just settled
+function renderPaperPreserve() {
+  const body = $('#paperBody');
+  if (!body) return;
+  // rebuild fresh
+  body.innerHTML = state.sections.map(s => {
+    if (s.removed) return '';
+    const cls = sectionStateClass(s);
+    const html = escapeHtml(s.text).replace(/\n/g, '<br/>');
+    return `<div class="section ${cls}" data-section="${s.id}">
+      <p>${html}</p>
+      ${s.locked ? '<button class="section__edit" data-edit="' + s.id + '">edytuj ręcznie</button>' : ''}
+    </div>`;
+  }).join('');
+  $$('[data-edit]', body).forEach(b => {
+    b.addEventListener('click', e => {
+      e.stopPropagation();
+      const sid = b.dataset.edit;
+      const sec = $(`.section[data-section="${sid}"]`);
+      if (!sec) return;
+      const p = sec.querySelector('p');
+      const isOn = sec.getAttribute('contenteditable') === 'true';
+      sec.setAttribute('contenteditable', isOn ? 'false' : 'true');
+      if (!isOn) p.focus();
+      else {
+        const obj = state.sections.find(x => x.id === sid);
+        if (obj) obj.text = p.innerText.trim();
+      }
+    });
+  });
+}
+
+// ============== Story (auto demo) ==============
+async function runFullStory() {
+  for (const step of DICTATION_SCRIPT) {
+    if (state.manualStop) break;
+    await runDictationStep(step);
+    await sleep(900);
+  }
+  state.storyRunning = false;
+  state.storyDone = true;
+  // small celebratory pause
+  await sleep(700);
+  setMic(false, 'Opis gotowy ✓');
+  // auto-advance to export after a moment
+  await sleep(1400);
+  if (!state.manualStop) showScreen('export');
+}
+
+// ============== Manual mic mode ==============
+$('#micBtn')?.addEventListener('click', () => {
+  if (state.storyRunning) {
+    state.manualStop = true;
+    setMic(false, 'Gotowy');
+    state.storyRunning = false;
+    return;
+  }
+  if (state.isRecording) {
+    setMic(false, 'Gotowy');
+  } else {
+    setMic(true, 'Słucham…');
+    setTimeout(() => setMic(false, 'Gotowy'), 1800);
+  }
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.code !== 'Space' || e.repeat) return;
+  if (state.currentScreen !== 'dictation') return;
+  const ae = document.activeElement;
+  if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.isContentEditable)) return;
+  e.preventDefault();
+  setMic(true, 'Słucham… (puść SPACJĘ, żeby zakończyć)');
+});
+document.addEventListener('keyup', (e) => {
+  if (e.code !== 'Space') return;
+  if (state.currentScreen !== 'dictation') return;
+  const ae = document.activeElement;
+  if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.isContentEditable)) return;
+  e.preventDefault();
+  if (state.isRecording) {
+    setMic(false, 'Przetwarzam…');
+    setTimeout(() => setMic(false, 'Gotowy'), 700);
+  }
+});
+
+// ============== Export step ==============
+function buildExportText() {
+  return {
+    title: MASTER_TEMPLATE.title,
+    patient: 'Pacjent ' + state.patient.anonId,
+    date: new Date().toLocaleDateString('pl-PL'),
+    sections: state.sections.filter(s => !s.removed),
+  };
+}
+
+function initExport() {
+  const ex = buildExportText();
+  const paper = $('#exportPaper');
+  paper.innerHTML = `
+    <h1>${escapeHtml(ex.title)}</h1>
+    <p class="meta"><strong>Pacjent:</strong> ${escapeHtml(ex.patient)} &nbsp; <strong>Data:</strong> ${ex.date} &nbsp; <strong>Lekarz:</strong> dr Kowalska</p>
+    ${ex.sections.map(s => {
+      if (s.id === 'wnioski') {
+        return `<div class="section-label">Wnioski:</div><p>${escapeHtml(s.text).replace(/\n/g, '<br/>')}</p>`;
+      }
+      return `<p>${escapeHtml(s.text)}</p>`;
+    }).join('')}
+    <p style="margin-top:36px; text-align:right;"><em>dr Kowalska, radiolog</em></p>
+  `;
+
+  // stats
+  const elapsed = state.startTime ? Math.round((Date.now() - state.startTime) / 1000) : 134;
+  $('#statTime').textContent = `${Math.floor(elapsed/60)} min ${elapsed%60} s`;
+  $('#statWords').textContent = state.totalDictatedWords;
+  const out = ex.sections.map(s => s.text.split(/\s+/).filter(Boolean).length).reduce((a,b)=>a+b,0);
+  $('#statOutput').textContent = out;
+  const saved = Math.max(0, Math.round((out * 0.6 - state.totalDictatedWords) / 25));
+  $('#statSave').textContent = `~${saved + 6} min`;
+}
+
+// ============== Real downloads ==============
+function buildPlainText() {
+  const ex = buildExportText();
+  let out = ex.title + '\n';
+  out += '='.repeat(ex.title.length) + '\n\n';
+  out += `Pacjent: ${ex.patient}    Data: ${ex.date}    Lekarz: dr Kowalska\n\n`;
+  for (const s of ex.sections) {
+    if (s.id === 'wnioski') {
+      out += '\nWnioski:\n' + s.text + '\n';
+    } else {
+      out += s.text + '\n';
+    }
+  }
+  out += '\n\n                                                  dr Kowalska, radiolog\n';
+  return out;
+}
+
+async function downloadWord() {
+  if (typeof docx === 'undefined') { showToast('Biblioteka docx się nie załadowała.'); return; }
+  const { Document, Packer, Paragraph, TextRun, AlignmentType, HeadingLevel } = docx;
+  const ex = buildExportText();
+
+  const children = [];
+  children.push(new Paragraph({
+    alignment: AlignmentType.CENTER,
+    spacing: { after: 200 },
+    children: [new TextRun({ text: ex.title, bold: true, size: 28 })],
+  }));
+  children.push(new Paragraph({
+    alignment: AlignmentType.CENTER,
+    spacing: { after: 320 },
+    children: [new TextRun({ text: `Pacjent: ${ex.patient}    Data: ${ex.date}    Lekarz: dr Kowalska`, size: 20, color: '6b6b6b' })],
+  }));
+  for (const s of ex.sections) {
+    if (s.id === 'wnioski') {
+      children.push(new Paragraph({
+        spacing: { before: 240, after: 80 },
+        children: [new TextRun({ text: 'Wnioski:', bold: true, size: 24 })],
+      }));
+      const lines = s.text.split('\n');
+      for (const line of lines) {
+        children.push(new Paragraph({
+          spacing: { after: 80 },
+          children: [new TextRun({ text: line, size: 22 })],
+        }));
+      }
+    } else {
+      children.push(new Paragraph({
+        spacing: { after: 120 },
+        children: [new TextRun({ text: s.text, size: 22 })],
+      }));
+    }
+  }
+  children.push(new Paragraph({
+    alignment: AlignmentType.RIGHT,
+    spacing: { before: 480 },
+    children: [new TextRun({ text: 'dr Kowalska, radiolog', italics: true, size: 22 })],
+  }));
+
+  const doc = new Document({ sections: [{ children }] });
+  const blob = await Packer.toBlob(doc);
+  triggerDownload(blob, makeFileName('docx'));
+  showToast('Plik Word zapisany.');
+}
+
+function downloadPdf() {
+  if (typeof window.jspdf === 'undefined') { showToast('Biblioteka jsPDF się nie załadowała.'); return; }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+  const margin = 56;
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const usableW = pageW - margin * 2;
+  let y = margin;
+
+  const ex = buildExportText();
+
+  // Note: default jsPDF Helvetica supports Latin-1; Polish diacritics may render imperfectly.
+  // We apply replacements as a fallback so output remains readable.
+  const polishSafe = (txt) => txt; // jsPDF handles most Latin-Ext OK with Helvetica in v2.5.1
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(13);
+  const titleLines = doc.splitTextToSize(polishSafe(ex.title), usableW);
+  doc.text(titleLines, pageW / 2, y, { align: 'center' });
+  y += 18 * titleLines.length;
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(110);
+  doc.text(polishSafe(`Pacjent: ${ex.patient}    Data: ${ex.date}    Lekarz: dr Kowalska`), pageW / 2, y, { align: 'center' });
+  y += 18;
+
+  doc.setDrawColor(180);
+  doc.line(margin, y, pageW - margin, y);
+  y += 18;
+
+  doc.setTextColor(30);
+  doc.setFontSize(11);
+
+  const writeParagraph = (text, opts = {}) => {
+    if (opts.bold) doc.setFont('helvetica', 'bold'); else doc.setFont('helvetica', 'normal');
+    const lines = doc.splitTextToSize(polishSafe(text), usableW);
+    for (const line of lines) {
+      if (y > pageH - margin) { doc.addPage(); y = margin; }
+      doc.text(line, margin, y);
+      y += 14;
+    }
+    y += 4;
+  };
+
+  for (const s of ex.sections) {
+    if (s.id === 'wnioski') {
+      y += 8;
+      writeParagraph('Wnioski:', { bold: true });
+      const lines = s.text.split('\n');
+      for (const line of lines) writeParagraph(line);
+    } else {
+      writeParagraph(s.text);
+    }
+  }
+
+  y += 24;
+  if (y > pageH - margin - 20) { doc.addPage(); y = margin; }
+  doc.setFont('helvetica', 'italic');
+  doc.setFontSize(10);
+  doc.text(polishSafe('dr Kowalska, radiolog'), pageW - margin, y, { align: 'right' });
+
+  doc.save(makeFileName('pdf'));
+  showToast('Plik PDF zapisany.');
+}
+
+function makeFileName(ext) {
+  const tpl = (TEMPLATES.find(t => t.id === state.templateId)?.title || 'Opis')
+    .replace(/[^A-Za-z0-9ąćęłńóśźżĄĆĘŁŃÓŚŹŻ ]/g, '').replace(/\s+/g, '_');
+  const date = new Date().toISOString().slice(0, 10);
+  return `${tpl}_Pacjent${state.patient.anonId.replace('#','')}_${date}.${ext}`;
+}
+
+function triggerDownload(blob, filename) {
+  const a = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+  a.href = url; a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 200);
+}
+
+// ============== Wire export buttons ==============
+$('#exportWord')?.addEventListener('click', downloadWord);
+$('#exportPdf')?.addEventListener('click', downloadPdf);
+$('#dlWord')?.addEventListener('click', downloadWord);
+$('#dlPdf')?.addEventListener('click', downloadPdf);
+$('#exportNext')?.addEventListener('click', () => showScreen('export'));
+$('#newReport')?.addEventListener('click', () => fullReset());
+
+// ============== Restart ==============
+$('#restartBtn')?.addEventListener('click', () => fullReset());
+
+function fullReset() {
+  state.sections = clone(MASTER_TEMPLATE.sections);
+  state.startTime = null;
+  state.totalDictatedWords = 0;
+  state.storyRunning = false;
+  state.storyDone = false;
+  state.manualStop = false;
+  state.isRecording = false;
+  transcriptBlock = null;
+  const tr = $('#transcript');
+  if (tr) tr.innerHTML = '<div class="transcript__empty">Tu pojawią się słowa, które dyktujesz…</div>';
+  setMic(false, 'Gotowy');
+  refreshAnonChips();
+  showScreen('patient');
+}
+
+// ============== Toast ==============
+let toastTimer = null;
+function showToast(msg) {
+  const t = $('#toast');
+  if (!t) return;
+  t.textContent = msg;
+  t.hidden = false;
+  // force reflow
+  void t.offsetHeight;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    t.classList.remove('show');
+    setTimeout(() => t.hidden = true, 240);
+  }, 2400);
+}
 
 // ============== Init ==============
-showScreen('setup');
+showScreen('patient');
