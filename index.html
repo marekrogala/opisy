@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Opisy — Asystent Radiologa</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- ============== SCREEN 1: SETUP ============== -->
+    <section class="screen screen--setup" data-screen="setup">
+      <header class="setup__header">
+        <div class="brand">
+          <span class="brand__mark">◐</span>
+          <span class="brand__name">Opisy</span>
+          <span class="brand__tag">Asystent radiologa</span>
+        </div>
+        <span class="badge badge--demo">MOCKUP / DEMO</span>
+      </header>
+
+      <div class="setup__hero">
+        <h1>Twórz opisy badań głosem,<br/>w swoim stylu.</h1>
+        <p class="lede">
+          Dyktujesz skróty po polsku, system zamienia je na pełne zdania
+          dopasowane do tego, jak Ty piszesz opisy. Szablon zmienia się
+          na żywo w gotowy opis.
+        </p>
+      </div>
+
+      <div class="setup__cards">
+        <div class="card setup-card" id="cardTemplates">
+          <div class="card__icon">📋</div>
+          <h3>1. Szablony badań</h3>
+          <p>Wgraj swoje pliki Word z szablonami opisów (MR, TK, USG, RTG).</p>
+          <ul class="filelist" id="templatesFiles">
+            <li>MR_kolano_prawe.docx <span class="ok">✓</span></li>
+            <li>MR_kolano_lewe.docx <span class="ok">✓</span></li>
+            <li>MR_bark.docx <span class="ok">✓</span></li>
+            <li>MR_kregoslup_L.docx <span class="ok">✓</span></li>
+          </ul>
+          <button class="btn btn--ghost" disabled>+ Dodaj szablon (mock)</button>
+        </div>
+
+        <div class="card setup-card" id="cardCorpus">
+          <div class="card__icon">🧠</div>
+          <h3>2. Twoje opisy do nauki stylu</h3>
+          <p>Wgraj 30–300 swoich gotowych opisów (Word/PDF). System wyciągnie
+          z nich Twój styl pisania — bez zapamiętywania danych pacjentów.</p>
+          <div class="progress">
+            <div class="progress__bar" style="width: 78%"></div>
+          </div>
+          <div class="muted">Zanonimizowano i zindeksowano <strong>47 / 60</strong> opisów</div>
+          <button class="btn btn--ghost" disabled>+ Dodaj opisy (mock)</button>
+        </div>
+
+        <div class="card setup-card setup-card--privacy">
+          <div class="card__icon">🔒</div>
+          <h3>3. Prywatność danych</h3>
+          <ul class="check">
+            <li><span class="ok">✓</span> Dane pacjentów (imię, PESEL, daty) usuwane przed wysłaniem</li>
+            <li><span class="ok">✓</span> Whisper API + Claude API w trybie zero-retention</li>
+            <li><span class="ok">✓</span> Szablony i baza stylu trzymane lokalnie</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="setup__actions">
+        <button class="btn btn--primary btn--lg" data-go="templates">
+          Zacznij nowy opis →
+        </button>
+        <button class="btn btn--secondary btn--lg" id="runFullDemo">
+          ▶ Uruchom demo (pełne flow)
+        </button>
+      </div>
+    </section>
+
+    <!-- ============== SCREEN 2: TEMPLATE PICK ============== -->
+    <section class="screen" data-screen="templates" hidden>
+      <header class="topbar">
+        <button class="btn btn--ghost" data-go="setup">← Wróć</button>
+        <h2>Wybierz szablon badania</h2>
+        <input type="search" class="search" placeholder="Szukaj szablonu…" />
+      </header>
+
+      <div class="templates-grid">
+        <button class="tcard tcard--featured" data-template="mr_kolano_prawe">
+          <div class="tcard__icon">🦵</div>
+          <div class="tcard__title">MR kolana prawego</div>
+          <div class="tcard__meta">MR · Ostatnio użyty: dziś</div>
+        </button>
+        <button class="tcard" data-template="mr_kolano_lewe">
+          <div class="tcard__icon">🦵</div>
+          <div class="tcard__title">MR kolana lewego</div>
+          <div class="tcard__meta">MR · Wczoraj</div>
+        </button>
+        <button class="tcard" data-template="mr_bark">
+          <div class="tcard__icon">💪</div>
+          <div class="tcard__title">MR barku</div>
+          <div class="tcard__meta">MR · 3 dni temu</div>
+        </button>
+        <button class="tcard" data-template="mr_kregoslup">
+          <div class="tcard__icon">🧍</div>
+          <div class="tcard__title">MR kręgosłupa L-S</div>
+          <div class="tcard__meta">MR · Tydzień temu</div>
+        </button>
+      </div>
+
+      <div class="muted templates-hint">
+        💡 W demo aktywny jest tylko <strong>MR kolana prawego</strong>
+      </div>
+    </section>
+
+    <!-- ============== SCREEN 3: DICTATION ============== -->
+    <section class="screen screen--dictation" data-screen="dictation" hidden>
+      <header class="topbar topbar--dictation">
+        <button class="btn btn--ghost" data-go="templates">← Szablony</button>
+        <div class="topbar__title">
+          <strong id="dictTemplateName">MR kolana prawego</strong>
+          <span class="muted">· Pacjent: [zanonimizowane]</span>
+        </div>
+        <div class="topbar__actions">
+          <button class="btn btn--ghost" id="undoBtn" title="Cofnij ostatnią zmianę">↶ Cofnij</button>
+          <button class="btn btn--primary" data-go="export">Zakończ →</button>
+        </div>
+      </header>
+
+      <div class="dictation">
+        <!-- Left: section progress -->
+        <aside class="dictation__sections">
+          <h4>Sekcje opisu</h4>
+          <ul id="sectionList"></ul>
+        </aside>
+
+        <!-- Middle: live report -->
+        <main class="dictation__report" id="reportRoot">
+          <!-- generated by JS -->
+        </main>
+
+        <!-- Right: voice + transcript -->
+        <aside class="dictation__voice">
+          <div class="mic">
+            <button class="mic__btn" id="micBtn">
+              <span class="mic__icon">🎙</span>
+              <span class="mic__label">Trzymaj <kbd>SPACJA</kbd> i mów</span>
+            </button>
+            <div class="mic__level"><span id="micLevel"></span></div>
+            <div class="mic__status muted" id="micStatus">Gotowy</div>
+          </div>
+
+          <div class="transcript">
+            <h4>Co powiedziałaś</h4>
+            <ul class="transcript__list" id="transcriptList">
+              <li class="transcript__hint muted">Tu pojawi się Twój dyktat…</li>
+            </ul>
+          </div>
+
+          <div class="demo-controls">
+            <h4>🎬 Symulacja dyktatu</h4>
+            <p class="muted small">Kliknij, żeby udać że dyktujesz dany skrót:</p>
+            <div class="demo-buttons" id="demoButtons"></div>
+            <button class="btn btn--secondary" id="demoAuto">▶ Auto-demo (cały opis)</button>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- ============== SCREEN 4: EXPORT ============== -->
+    <section class="screen screen--export" data-screen="export" hidden>
+      <header class="topbar">
+        <button class="btn btn--ghost" data-go="dictation">← Wróć do edycji</button>
+        <h2>Gotowy opis</h2>
+        <div></div>
+      </header>
+
+      <div class="export">
+        <article class="export__paper" id="exportPaper">
+          <!-- generated by JS -->
+        </article>
+
+        <aside class="export__side">
+          <h3>Zapisz / wyślij</h3>
+          <button class="btn btn--primary btn--lg btn--block">📄 Pobierz jako Word</button>
+          <button class="btn btn--secondary btn--block">🖨 Pobierz jako PDF</button>
+          <button class="btn btn--secondary btn--block">📋 Skopiuj do schowka</button>
+          <button class="btn btn--ghost btn--block">↗ Wyślij do PACS (mock)</button>
+
+          <hr/>
+
+          <h3>Statystyki</h3>
+          <div class="stat"><span>Czas opisu</span><strong id="statTime">2 min 14 s</strong></div>
+          <div class="stat"><span>Słów dyktatu</span><strong id="statWords">23</strong></div>
+          <div class="stat"><span>Słów w opisie</span><strong id="statOutput">187</strong></div>
+          <div class="stat"><span>Oszczędność</span><strong class="ok">~7 min</strong></div>
+
+          <hr/>
+          <button class="btn btn--ghost btn--block" data-go="setup">+ Nowy opis</button>
+        </aside>
+      </div>
+    </section>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
