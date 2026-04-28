@@ -423,6 +423,100 @@ async function startDemo() {
   }
 }
 
+// ============== Speech Recognition ==============
+let recognition = null;
+
+function initSpeechRecognition() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return null;
+  const r = new SR();
+  r.lang = 'pl-PL';
+  r.continuous = true;
+  r.interimResults = true;
+
+  let currentBlock = null;
+
+  r.onresult = (event) => {
+    const tr = $('#transcript');
+    if (!tr) return;
+    clearTranscriptEmpty();
+
+    if (!currentBlock) {
+      currentBlock = document.createElement('div');
+      currentBlock.className = 'transcript__block transcript__block--live';
+      tr.appendChild(currentBlock);
+    }
+
+    let text = '';
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      text += event.results[i][0].transcript;
+    }
+    currentBlock.textContent = text;
+    tr.scrollTop = tr.scrollHeight;
+  };
+
+  r.onerror = (event) => {
+    if (event.error === 'not-allowed') {
+      showToast('Brak dostępu do mikrofonu');
+    }
+  };
+
+  r.onend = () => {
+    if (state.isRecording) r.start(); // auto-restart
+    else {
+      if (currentBlock) currentBlock.classList.add('done');
+      currentBlock = null;
+    }
+  };
+
+  return r;
+}
+
+function startRealRecording() {
+  if (!recognition) recognition = initSpeechRecognition();
+  if (!recognition) {
+    showToast('Przeglądarka nie obsługuje rozpoznawania mowy');
+    return false;
+  }
+  try {
+    recognition.start();
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+function stopRealRecording() {
+  if (recognition) {
+    try { recognition.stop(); } catch (e) {}
+  }
+}
+
+// ============== Push-to-talk (SPACE) ==============
+document.addEventListener('keydown', (e) => {
+  if (e.code !== 'Space' || e.repeat) return;
+  if (state.currentView !== 'workspace') return;
+  const ae = document.activeElement;
+  if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.isContentEditable)) return;
+  e.preventDefault();
+  if (!state.isRecording) {
+    startRealRecording();
+    setMic(true, 'Nagrywam…');
+  }
+});
+
+document.addEventListener('keyup', (e) => {
+  if (e.code !== 'Space') return;
+  if (state.currentView !== 'workspace') return;
+  const ae = document.activeElement;
+  if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.isContentEditable)) return;
+  e.preventDefault();
+  if (state.isRecording && !state.storyRunning) {
+    stopRealRecording();
+    setMic(false, 'Gotowy');
+  }
+});
+
 // ============== Mic button ==============
 document.addEventListener('click', e => {
   if (!e.target.closest('#micBtn')) return;
@@ -431,10 +525,15 @@ document.addEventListener('click', e => {
     setMic(false, 'Zatrzymano');
     state.storyRunning = false;
   } else if (state.isRecording) {
+    stopRealRecording();
     setMic(false, 'Gotowy');
   } else {
-    setMic(true, 'Słucham…');
-    setTimeout(() => setMic(false, 'Gotowy'), 1800);
+    if (startRealRecording()) {
+      setMic(true, 'Nagrywam…');
+    } else {
+      setMic(true, 'Słucham…');
+      setTimeout(() => setMic(false, 'Gotowy'), 1800);
+    }
   }
 });
 
@@ -445,12 +544,21 @@ document.addEventListener('click', e => {
 
 // ============== Export helpers ==============
 function buildExportData() {
+  const readField = (field) => {
+    const el = $(`[data-field="${field}"]`);
+    return el ? el.textContent.trim() : '';
+  };
   return {
-    title: MASTER_TEMPLATE.title,
-    patientName: 'Anna Kowalska',
-    pesel: '84062512345',
-    date: '28.04.2026',
-    doctorName: 'dr Kowalska',
+    title: $('.doc-title')?.textContent?.trim() || MASTER_TEMPLATE.title,
+    institution: $('.doc-institution span:first-child')?.textContent?.trim() || 'PRACOWNIA DIAGNOSTYKI OBRAZOWEJ',
+    institutionAddr: $('.doc-institution__addr')?.textContent?.trim() || '',
+    patientName: readField('patientName') || 'Anna Kowalska',
+    pesel: readField('pesel') || '84062512345',
+    sex: readField('sex') || 'K',
+    age: readField('age') || '41 l.',
+    date: readField('date') || '28.04.2026',
+    doctorName: readField('doctor') || 'dr Kowalska',
+    address: readField('address') || '',
     sections: state.sections.filter(s => !s.removed),
   };
 }

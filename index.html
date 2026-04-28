@@ -63,6 +63,8 @@
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
           Lista opisów
         </button>
+        <span class="header-sep"></span>
+        <span class="header-patient">Anna Kowalska · 84062512345 · MR kolana prawego</span>
       </div>
       <div class="header__right">
         <button class="hbtn hbtn--ghost" id="dlWord" disabled title="Dostępne po zakończeniu opisu">
@@ -96,17 +98,30 @@
       <!-- RIGHT: Report document -->
       <main class="report-panel">
         <div class="paper" id="paper">
-          <div class="paper__institution">PRACOWNIA DIAGNOSTYKI OBRAZOWEJ</div>
-          <h1 class="paper__title" id="paperTitle">REZONANS MAGNETYCZNY KOLANA PRAWEGO</h1>
-          <div class="paper__divider"></div>
-          <div class="paper__fields">
+          <div class="doc-institution">
+            <span contenteditable="true">PRACOWNIA DIAGNOSTYKI OBRAZOWEJ</span>
+            <span contenteditable="true" class="doc-institution__addr">ul. Przykładowa 10, 80-000 Gdańsk</span>
+          </div>
+          <hr class="doc-rule" />
+
+          <h1 class="doc-title" contenteditable="true">REZONANS MAGNETYCZNY KOLANA PRAWEGO</h1>
+
+          <div class="doc-patient-grid">
             <div class="doc-field">
-              <span class="doc-field__label">Pacjent:</span>
+              <span class="doc-field__label">Nazwisko i imię:</span>
               <span class="doc-field__value" contenteditable="true" data-field="patientName">Anna Kowalska</span>
+            </div>
+            <div class="doc-field">
+              <span class="doc-field__label">Płeć:</span>
+              <span class="doc-field__value" contenteditable="true" data-field="sex">K</span>
             </div>
             <div class="doc-field">
               <span class="doc-field__label">PESEL:</span>
               <span class="doc-field__value" contenteditable="true" data-field="pesel">84062512345</span>
+            </div>
+            <div class="doc-field">
+              <span class="doc-field__label">Wiek:</span>
+              <span class="doc-field__value" contenteditable="true" data-field="age">41 l.</span>
             </div>
             <div class="doc-field">
               <span class="doc-field__label">Data badania:</span>
@@ -116,8 +131,13 @@
               <span class="doc-field__label">Lekarz opisujący:</span>
               <span class="doc-field__value" contenteditable="true" data-field="doctor">dr Kowalska</span>
             </div>
+            <div class="doc-field doc-field--full">
+              <span class="doc-field__label">Adres:</span>
+              <span class="doc-field__value" contenteditable="true" data-field="address">ul. Kwiatowa 5, 80-001 Gdańsk</span>
+            </div>
           </div>
-          <div class="paper__divider"></div>
+          <hr class="doc-rule" />
+
           <div class="paper__body" id="paperBody"></div>
           <div class="paper__signature"><span id="sigName">dr Kowalska, radiolog</span></div>
         </div>
