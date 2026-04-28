@@ -190,6 +190,8 @@ function refreshAnonChips() {
   } else {
     $('#peselAnon').textContent = '→ Pacjent #—';
   }
+  const footerAnon = $('#footerAnonId');
+  if (footerAnon) footerAnon.textContent = 'Pacjent ' + state.patient.anonId;
 }
 ['#fName', '#lName', '#pesel'].forEach(sel => {
   $(sel)?.addEventListener('input', refreshAnonChips);
@@ -213,7 +215,7 @@ $('#patientNext').addEventListener('click', () => {
 function renderTemplates() {
   const wrap = $('#tplGrid');
   wrap.innerHTML = TEMPLATES.map(t => `
-    <button class="tcard ${t.id === state.templateId ? 'tcard--active' : ''}" data-tpl="${t.id}">
+    <button class="tcard ${t.id === state.templateId ? 'tcard--active' : ''} ${!t.active ? 'tcard--disabled' : ''}" data-tpl="${t.id}">
       <span class="tcard__icon tcard__icon--badge">${t.icon}</span>
       <span class="tcard__title">${t.title}</span>
       <span class="tcard__meta">${t.meta}</span>
@@ -222,10 +224,7 @@ function renderTemplates() {
   $$('.tcard', wrap).forEach(b => {
     b.addEventListener('click', () => {
       const id = b.dataset.tpl;
-      if (id !== 'mr_kolano_prawe') {
-        showToast('W demo aktywny jest tylko szablon MR kolana prawego.');
-        return;
-      }
+      if (id !== 'mr_kolano_prawe') return;
       state.templateId = id;
       showScreen('dictation');
     });
@@ -528,7 +527,7 @@ async function runFullStory() {
     const locked = state.sections.filter(s => s.locked).length;
     const total = state.sections.filter(s => !s.removed).length;
     const elapsed = state.startTime ? Math.round((Date.now() - state.startTime) / 1000) : 0;
-    banner.innerHTML = `<span>Opis gotowy · ${locked}/${total} zweryfikowane</span><div class="banner__progress"></div>`;
+    banner.innerHTML = `<span>Opis gotowy · ${locked}/${total} zweryfikowane</span><div class="banner__progress" style="animation-duration:10s"></div>`;
     paper.prepend(banner);
   }
 
@@ -540,8 +539,10 @@ async function runFullStory() {
   const hint = $('.mic__hint');
   if (hint) hint.innerHTML = 'Demo zakończone. Kliknij <strong>Zakończ i wyeksportuj</strong> lub poczekaj.';
 
-  // auto-advance after 6s unless user already navigated
-  await sleep(6000);
+  // auto-advance after 10s unless user already navigated
+  const cancelAdvance = () => { state.manualStop = true; };
+  $('#paper')?.addEventListener('click', cancelAdvance, { once: true });
+  await sleep(10000);
   if (!state.manualStop && state.currentScreen === 'dictation') showScreen('export');
 }
 
@@ -627,50 +628,60 @@ function buildPlainText() {
 
 async function downloadWord() {
   if (typeof docx === 'undefined') { showToast('Biblioteka docx się nie załadowała.'); return; }
-  const { Document, Packer, Paragraph, TextRun, AlignmentType, HeadingLevel } = docx;
-  const ex = buildExportText();
+  const wordBtn = $('#exportWord') || $('#dlWord');
+  const origText = wordBtn?.textContent;
+  if (wordBtn) { wordBtn.textContent = 'Generuję Word…'; wordBtn.disabled = true; }
+  try {
+    const { Document, Packer, Paragraph, TextRun, AlignmentType, HeadingLevel } = docx;
+    const ex = buildExportText();
 
-  const children = [];
-  children.push(new Paragraph({
-    alignment: AlignmentType.CENTER,
-    spacing: { after: 200 },
-    children: [new TextRun({ text: ex.title, bold: true, size: 28 })],
-  }));
-  children.push(new Paragraph({
-    alignment: AlignmentType.CENTER,
-    spacing: { after: 320 },
-    children: [new TextRun({ text: `Pacjent: ${ex.patient}    Data: ${ex.date}    Lekarz: ${state.patient.doctorName}`, size: 20, color: '6b6b6b' })],
-  }));
-  for (const s of ex.sections) {
-    if (s.id === 'wnioski') {
-      children.push(new Paragraph({
-        spacing: { before: 240, after: 80 },
-        children: [new TextRun({ text: 'Wnioski:', bold: true, size: 24 })],
-      }));
-      const lines = s.text.split('\n');
-      for (const line of lines) {
+    const children = [];
+    children.push(new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { after: 200 },
+      children: [new TextRun({ text: ex.title, bold: true, size: 28 })],
+    }));
+    children.push(new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { after: 320 },
+      children: [new TextRun({ text: `Pacjent: ${ex.patient}    Data: ${ex.date}    Lekarz: ${state.patient.doctorName}`, size: 20, color: '6b6b6b' })],
+    }));
+    for (const s of ex.sections) {
+      if (s.id === 'wnioski') {
         children.push(new Paragraph({
-          spacing: { after: 80 },
-          children: [new TextRun({ text: line, size: 22 })],
+          spacing: { before: 240, after: 80 },
+          children: [new TextRun({ text: 'Wnioski:', bold: true, size: 24 })],
+        }));
+        const lines = s.text.split('\n');
+        for (const line of lines) {
+          children.push(new Paragraph({
+            spacing: { after: 80 },
+            children: [new TextRun({ text: line, size: 22 })],
+          }));
+        }
+      } else {
+        children.push(new Paragraph({
+          spacing: { after: 120 },
+          children: [new TextRun({ text: s.text, size: 22 })],
         }));
       }
-    } else {
-      children.push(new Paragraph({
-        spacing: { after: 120 },
-        children: [new TextRun({ text: s.text, size: 22 })],
-      }));
     }
-  }
-  children.push(new Paragraph({
-    alignment: AlignmentType.RIGHT,
-    spacing: { before: 480 },
-    children: [new TextRun({ text: `${state.patient.doctorName}, radiolog`, italics: true, size: 22 })],
-  }));
+    children.push(new Paragraph({
+      alignment: AlignmentType.RIGHT,
+      spacing: { before: 480 },
+      children: [new TextRun({ text: `${state.patient.doctorName}, radiolog`, italics: true, size: 22 })],
+    }));
 
-  const doc = new Document({ sections: [{ children }] });
-  const blob = await Packer.toBlob(doc);
-  triggerDownload(blob, makeFileName('docx'));
-  showToast('Plik Word zapisany.');
+    const doc = new Document({ sections: [{ children }] });
+    const blob = await Packer.toBlob(doc);
+    triggerDownload(blob, makeFileName('docx'));
+    showToast('Plik Word zapisany.');
+  } catch (e) {
+    console.error('Word export failed:', e);
+    showToast('Błąd generowania pliku Word.');
+  } finally {
+    if (wordBtn) { wordBtn.textContent = origText; wordBtn.disabled = false; }
+  }
 }
 
 let _fontBase64Cache = null;
