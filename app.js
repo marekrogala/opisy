@@ -114,7 +114,7 @@ const DICTATION_SCRIPT = [
 
 // ============== State ==============
 const state = {
-  patient: { firstName: 'Anna', lastName: 'Kowalska', pesel: '84062512345', anonId: '#4471', referral: '' },
+  patient: { firstName: 'Anna', lastName: 'Kowalska', pesel: '84062512345', anonId: '#4471', referral: '', doctorName: 'dr Kowalska' },
   templateId: 'mr_kolano_prawe',
   sections: clone(MASTER_TEMPLATE.sections),
   currentScreen: 'patient',
@@ -201,6 +201,7 @@ $('#patientNext').addEventListener('click', () => {
   state.patient.lastName = $('#lName').value;
   state.patient.pesel = $('#pesel').value;
   state.patient.referral = $('#refer').value;
+  state.patient.doctorName = $('#doctorName').value || state.patient.doctorName;
   state.templateId = $('#examType').value;
   // sync wskazanie section
   const ws = state.sections.find(s => s.id === 'wskazanie');
@@ -301,12 +302,15 @@ function sectionStateClass(s) {
   return '';
 }
 
-function renderPaper() {
+function renderPaper(preserveScroll = false) {
   $('#paperTitle').textContent = MASTER_TEMPLATE.title;
   $('#paperMeta').textContent =
-    `Pacjent: Pacjent ${state.patient.anonId} · Data badania: ${new Date().toLocaleDateString('pl-PL')} · Lekarz: dr Kowalska`;
+    `Pacjent: Pacjent ${state.patient.anonId} · Data badania: ${new Date().toLocaleDateString('pl-PL')} · Lekarz: ${state.patient.doctorName}`;
 
   const body = $('#paperBody');
+  if (!body) return;
+  const scrollTop = preserveScroll ? body.scrollTop : 0;
+
   body.innerHTML = state.sections.map(s => {
     if (s.removed) return '';
     const cls = sectionStateClass(s);
@@ -316,6 +320,8 @@ function renderPaper() {
       ${s.locked ? '<button class="section__edit" data-edit="' + s.id + '">edytuj ręcznie</button>' : ''}
     </div>`;
   }).join('');
+
+  if (preserveScroll) body.scrollTop = scrollTop;
 
   $$('[data-edit]', body).forEach(b => {
     b.addEventListener('click', e => {
@@ -437,13 +443,13 @@ async function runDictationStep(step) {
   sec.pending = false;
   sec.locked = true;
   sec.text = step.newText;
-  if (step.showLockToast) showToast('✓ Sekcja zablokowana — model jej nie zmieni');
+  if (step.showLockToast) showToast('Sekcja zablokowana — model jej nie zmieni');
 
   // implicit cleanup: remove any pending sections that are contradicted
   await applyImplicitCleanup(step);
 
   renderSections();
-  renderPaperPreserve();
+  renderPaper(true);
   setMic(false, 'Gotowy');
   // brief save flash
   flashSave();
@@ -508,47 +514,6 @@ async function applyImplicitCleanup(step) {
   }
 }
 
-// Render paper but preserve scroll & not disturb diff that just settled
-function renderPaperPreserve() {
-  const body = $('#paperBody');
-  if (!body) return;
-  // rebuild fresh
-  body.innerHTML = state.sections.map(s => {
-    if (s.removed) return '';
-    const cls = sectionStateClass(s);
-    const html = escapeHtml(s.text).replace(/\n/g, '<br/>');
-    return `<div class="section ${cls}" data-section="${s.id}">
-      <p>${html}</p>
-      ${s.locked ? '<button class="section__edit" data-edit="' + s.id + '">edytuj ręcznie</button>' : ''}
-    </div>`;
-  }).join('');
-  $$('[data-edit]', body).forEach(b => {
-    b.addEventListener('click', e => {
-      e.stopPropagation();
-      const sid = b.dataset.edit;
-      const sec = $(`.section[data-section="${sid}"]`);
-      if (!sec) return;
-      const p = sec.querySelector('p');
-      if (p.contentEditable === 'true') {
-        p.contentEditable = 'false';
-        sec.classList.remove('section--editing');
-        const obj = state.sections.find(x => x.id === sid);
-        if (obj) obj.text = p.innerText.trim();
-      } else {
-        p.contentEditable = 'true';
-        sec.classList.add('section--editing');
-        p.focus();
-        p.addEventListener('blur', () => {
-          p.contentEditable = 'false';
-          sec.classList.remove('section--editing');
-          const obj = state.sections.find(x => x.id === sid);
-          if (obj) obj.text = p.innerText.trim();
-        }, { once: true });
-      }
-    });
-  });
-}
-
 // ============== Story (auto demo) ==============
 async function runFullStory() {
   // Disable export panel during dictation
@@ -575,7 +540,7 @@ async function runFullStory() {
     const el = $(sel);
     if (el) { el.disabled = false; el.title = ''; }
   });
-  setMic(false, 'Opis gotowy ✓');
+  setMic(false, 'Opis gotowy');
 
   // show finale banner on paper
   const paper = $('#paper');
@@ -585,7 +550,7 @@ async function runFullStory() {
     const locked = state.sections.filter(s => s.locked).length;
     const total = state.sections.filter(s => !s.removed).length;
     const elapsed = state.startTime ? Math.round((Date.now() - state.startTime) / 1000) : 0;
-    banner.innerHTML = `Opis gotowy · ${locked}/${total} zweryfikowane · ${Math.floor(elapsed/60)} min ${elapsed%60} s · ~8 min szybciej niż ręcznie`;
+    banner.innerHTML = `<span>Opis gotowy · ${locked}/${total} zweryfikowane · ${Math.floor(elapsed/60)} min ${elapsed%60} s · ~8 min szybciej niż ręcznie</span><div class="banner__progress"></div>`;
     paper.prepend(banner);
   }
 
@@ -653,14 +618,14 @@ function initExport() {
   const paper = $('#exportPaper');
   paper.innerHTML = `
     <h1>${escapeHtml(ex.title)}</h1>
-    <p class="meta"><strong>Pacjent:</strong> ${escapeHtml(ex.patient)} &nbsp; <strong>Data:</strong> ${ex.date} &nbsp; <strong>Lekarz:</strong> dr Kowalska</p>
+    <p class="meta"><strong>Pacjent:</strong> ${escapeHtml(ex.patient)} &nbsp; <strong>Data:</strong> ${ex.date} &nbsp; <strong>Lekarz:</strong> ${escapeHtml(state.patient.doctorName)}</p>
     ${ex.sections.map(s => {
       if (s.id === 'wnioski') {
         return `<div class="section-label">Wnioski:</div><p>${escapeHtml(s.text).replace(/\n/g, '<br/>')}</p>`;
       }
       return `<p>${escapeHtml(s.text)}</p>`;
     }).join('')}
-    <p style="margin-top:36px; text-align:right;"><em>dr Kowalska, radiolog</em></p>
+    <p style="margin-top:36px; text-align:right;"><em>${escapeHtml(state.patient.doctorName)}, radiolog</em></p>
   `;
 
   // stats
@@ -679,7 +644,7 @@ function buildPlainText() {
   const ex = buildExportText();
   let out = ex.title + '\n';
   out += '='.repeat(ex.title.length) + '\n\n';
-  out += `Pacjent: ${ex.patient}    Data: ${ex.date}    Lekarz: dr Kowalska\n\n`;
+  out += `Pacjent: ${ex.patient}    Data: ${ex.date}    Lekarz: ${state.patient.doctorName}\n\n`;
   for (const s of ex.sections) {
     if (s.id === 'wnioski') {
       out += '\nWnioski:\n' + s.text + '\n';
@@ -687,7 +652,7 @@ function buildPlainText() {
       out += s.text + '\n';
     }
   }
-  out += '\n\n                                                  dr Kowalska, radiolog\n';
+  out += `\n\n                                                  ${state.patient.doctorName}, radiolog\n`;
   return out;
 }
 
@@ -705,7 +670,7 @@ async function downloadWord() {
   children.push(new Paragraph({
     alignment: AlignmentType.CENTER,
     spacing: { after: 320 },
-    children: [new TextRun({ text: `Pacjent: ${ex.patient}    Data: ${ex.date}    Lekarz: dr Kowalska`, size: 20, color: '6b6b6b' })],
+    children: [new TextRun({ text: `Pacjent: ${ex.patient}    Data: ${ex.date}    Lekarz: ${state.patient.doctorName}`, size: 20, color: '6b6b6b' })],
   }));
   for (const s of ex.sections) {
     if (s.id === 'wnioski') {
@@ -730,7 +695,7 @@ async function downloadWord() {
   children.push(new Paragraph({
     alignment: AlignmentType.RIGHT,
     spacing: { before: 480 },
-    children: [new TextRun({ text: 'dr Kowalska, radiolog', italics: true, size: 22 })],
+    children: [new TextRun({ text: `${state.patient.doctorName}, radiolog`, italics: true, size: 22 })],
   }));
 
   const doc = new Document({ sections: [{ children }] });
@@ -814,7 +779,7 @@ async function downloadPdf() {
   doc.setFont(fontName, 'normal');
   doc.setFontSize(9);
   doc.setTextColor(110);
-  doc.text(`Pacjent: ${ex.patient}    Data: ${ex.date}    Lekarz: dr Kowalska`, pageW / 2, y, { align: 'center' });
+  doc.text(`Pacjent: ${ex.patient}    Data: ${ex.date}    Lekarz: ${state.patient.doctorName}`, pageW / 2, y, { align: 'center' });
   y += 18;
 
   doc.setDrawColor(180);
@@ -850,7 +815,7 @@ async function downloadPdf() {
   if (y > pageH - margin - 20) { doc.addPage(); y = margin; }
   doc.setFont(fontName, 'normal');
   doc.setFontSize(10);
-  doc.text('dr Kowalska, radiolog', pageW - margin, y, { align: 'right' });
+  doc.text(`${state.patient.doctorName}, radiolog`, pageW - margin, y, { align: 'right' });
 
   doc.save(makeFileName('pdf'));
   } finally {
