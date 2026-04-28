@@ -98,48 +98,26 @@
       <!-- RIGHT: Report document -->
       <main class="report-panel">
         <div class="paper" id="paper">
-          <div class="doc-institution">
-            <span contenteditable="true">PRACOWNIA DIAGNOSTYKI OBRAZOWEJ</span>
-            <span contenteditable="true" class="doc-institution__addr">ul. Przykładowa 10, 80-000 Gdańsk</span>
-          </div>
-          <hr class="doc-rule" />
+          <div class="doc-header">
+            <div class="doc-doctor" contenteditable="true">
+              Indywidualna Praktyka Lekarska lek. med. Joanna Niemunis-Sawicka
+              <br/>Specjalista radiologii i diagnostyki obrazowej
+              <br/>80 390 Gdańsk Kołobrzeska 29d/6
+            </div>
 
-          <h1 class="doc-title" contenteditable="true">REZONANS MAGNETYCZNY KOLANA PRAWEGO</h1>
+            <div class="doc-patient-line">
+              <span contenteditable="true" data-field="patientName" class="doc-editable">Kowalska Anna</span>
+              <span contenteditable="true" data-field="pesel" class="doc-editable">84062512345</span>
+            </div>
 
-          <div class="doc-patient-grid">
-            <div class="doc-field">
-              <span class="doc-field__label">Nazwisko i imię:</span>
-              <span class="doc-field__value" contenteditable="true" data-field="patientName">Anna Kowalska</span>
-            </div>
-            <div class="doc-field">
-              <span class="doc-field__label">Płeć:</span>
-              <span class="doc-field__value" contenteditable="true" data-field="sex">K</span>
-            </div>
-            <div class="doc-field">
-              <span class="doc-field__label">PESEL:</span>
-              <span class="doc-field__value" contenteditable="true" data-field="pesel">84062512345</span>
-            </div>
-            <div class="doc-field">
-              <span class="doc-field__label">Wiek:</span>
-              <span class="doc-field__value" contenteditable="true" data-field="age">41 l.</span>
-            </div>
-            <div class="doc-field">
-              <span class="doc-field__label">Data badania:</span>
-              <span class="doc-field__value" contenteditable="true" data-field="date">28.04.2026</span>
-            </div>
-            <div class="doc-field">
-              <span class="doc-field__label">Lekarz opisujący:</span>
-              <span class="doc-field__value" contenteditable="true" data-field="doctor">dr Kowalska</span>
-            </div>
-            <div class="doc-field doc-field--full">
-              <span class="doc-field__label">Adres:</span>
-              <span class="doc-field__value" contenteditable="true" data-field="address">ul. Kwiatowa 5, 80-001 Gdańsk</span>
+            <div class="doc-exam-line">
+              <span contenteditable="true" data-field="examType" class="doc-editable">MR kolana prawego</span>
+              <span contenteditable="true" data-field="date" class="doc-editable">28.04.2026</span>
             </div>
           </div>
-          <hr class="doc-rule" />
 
           <div class="paper__body" id="paperBody"></div>
-          <div class="paper__signature"><span id="sigName">dr Kowalska, radiolog</span></div>
+          <div class="doc-signature" contenteditable="true">Dr n.med. J. Niemunis-Sawicka</div>
         </div>
       </main>
     </div>
@@ -161,6 +139,40 @@
     </div>
   </div>
 
+</div>
+
+<div class="new-exam-modal" id="newExamModal" hidden>
+  <div class="new-exam-modal__card">
+    <h3>Nowe badanie</h3>
+    <div class="new-exam-form">
+      <label>
+        <span>Pacjent</span>
+        <input type="text" id="newPatientName" placeholder="Nazwisko Imię" autofocus />
+      </label>
+      <label>
+        <span>PESEL</span>
+        <input type="text" id="newPesel" placeholder="00000000000" inputmode="numeric" maxlength="11" />
+      </label>
+      <label>
+        <span>Badanie</span>
+        <select id="newExamType">
+          <option value="MR kolana prawego">MR kolana prawego</option>
+          <option value="MR kolana lewego">MR kolana lewego</option>
+          <option value="MR barku">MR barku</option>
+          <option value="MR kręgosłupa L-S">MR kręgosłupa L-S</option>
+          <option value="MR stawu skokowego">MR stawu skokowego</option>
+          <option value="MR stawu biodrowego">MR stawu biodrowego</option>
+          <option value="USG jamy brzusznej">USG jamy brzusznej</option>
+          <option value="TK głowy">TK głowy</option>
+          <option value="TK klatki piersiowej">TK klatki piersiowej</option>
+        </select>
+      </label>
+      <div class="new-exam-form__actions">
+        <button class="btn btn--ghost" id="cancelNewExam">Anuluj</button>
+        <button class="btn btn--primary" id="startNewExam">Rozpocznij →</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <div class="toast" id="toast" hidden></div>

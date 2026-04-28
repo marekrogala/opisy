@@ -518,7 +518,48 @@ document.addEventListener('click', e => {
 
 // ============== Navigation ==============
 document.addEventListener('click', e => {
-  if (e.target.closest('#backBtn') || e.target.closest('#newExamBtn')) goToList();
+  if (e.target.closest('#backBtn')) goToList();
+  if (e.target.closest('#newExamBtn')) showNewExamModal();
+  if (e.target.closest('#startNewExam')) startNewExam();
+  if (e.target.closest('#cancelNewExam')) hideNewExamModal();
+});
+
+// ============== New exam modal ==============
+function showNewExamModal() {
+  const modal = $('#newExamModal');
+  if (!modal) return;
+  modal.hidden = false;
+  $('#newPatientName').value = '';
+  $('#newPesel').value = '';
+  $('#newExamType').value = 'MR kolana prawego';
+  setTimeout(() => $('#newPatientName').focus(), 50);
+}
+
+function hideNewExamModal() {
+  const modal = $('#newExamModal');
+  if (modal) modal.hidden = true;
+}
+
+function startNewExam() {
+  const name = ($('#newPatientName').value.trim()) || 'Anna Kowalska';
+  const pesel = ($('#newPesel').value.trim()) || '84062512345';
+  const exam = $('#newExamType').value;
+  hideNewExamModal();
+  showView('workspace');
+  initWorkspace();
+  const nameField = $('[data-field="patientName"]');
+  const peselField = $('[data-field="pesel"]');
+  const examField = $('[data-field="examType"]');
+  if (nameField) nameField.textContent = name;
+  if (peselField) peselField.textContent = pesel;
+  if (examField) examField.textContent = exam;
+  const headerPatient = $('.header-patient');
+  if (headerPatient) headerPatient.textContent = `${name} · ${pesel} · ${exam}`;
+}
+
+$('#newExamModal')?.addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); startNewExam(); }
+  if (e.key === 'Escape') { e.preventDefault(); hideNewExamModal(); }
 });
 
 // ============== Export helpers ==============
