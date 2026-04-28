@@ -18,17 +18,10 @@ export function ReportPanel({ sections, patientInfo, dispatch, showStartButton, 
         dispatch={dispatch}
       />
       {showStartButton && (
-        <div style={{
-          display: 'flex',
-          justifyContent: 'center',
-          padding: '24px 0',
-        }}>
-          <button
-            className="btn btn--primary"
-            style={{ padding: '12px 32px', fontSize: '14px' }}
-            onClick={onStartDictation}
-          >
-            Rozpocznij dyktowanie →
+        <div className="report-panel__start">
+          <button className="start-btn" onClick={onStartDictation}>
+            Rozpocznij dyktowanie
+            <span className="start-btn__arrow">→</span>
           </button>
         </div>
       )}

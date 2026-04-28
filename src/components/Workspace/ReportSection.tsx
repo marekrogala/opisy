@@ -12,8 +12,6 @@ export const ReportSection = memo(function ReportSection({ section, onTextChange
   const initializedRef = useRef(false);
   const lastSyncedText = useRef(section.text);
 
-  // Sync text from state → DOM only when text changes externally
-  // Skip during animation (displayedText is active) to avoid flicker
   useEffect(() => {
     if (section.removed || section.active) return;
     if (!pRef.current) return;
@@ -27,7 +25,6 @@ export const ReportSection = memo(function ReportSection({ section, onTextChange
     }
   }, [section.text, section.removed, section.active]);
 
-  // All hooks must be called before any conditional return
   const isTypewriting = section.active && section.displayedText !== undefined;
   const isFading = section.active && section.displayedText === undefined;
   const isEditable = !section.active && !section.removing;
@@ -57,17 +54,37 @@ export const ReportSection = memo(function ReportSection({ section, onTextChange
           exit={{ opacity: 0, height: 0, marginBottom: 0, overflow: 'hidden' }}
           transition={{ duration: 0.5, ease: 'easeOut' }}
         >
+          {/* During animation: show old text (strikethrough) + new text (typewriter) */}
+          {(isTypewriting || isFading) && section.oldText && (
+            <motion.p
+              className="section__old"
+              initial={{ opacity: 0.5 }}
+              animate={{ opacity: 0, height: 0 }}
+              transition={{ delay: isTypewriting ? 1.5 : 10, duration: 1.2, ease: 'easeOut' }}
+              style={{
+                textDecoration: 'line-through',
+                textDecorationColor: 'rgba(185, 28, 28, 0.5)',
+                color: 'var(--text-muted)',
+                overflow: 'hidden',
+              }}
+            >
+              {section.oldText}
+            </motion.p>
+          )}
+
           {isTypewriting ? (
-            <p>{section.displayedText}<span className="cursor">▌</span></p>
-          ) : (
+            <p className="section__new">
+              {section.displayedText}
+              <span className="cursor">▌</span>
+            </p>
+          ) : !isFading ? (
             <p
               ref={pRef}
               contentEditable={isEditable}
               suppressContentEditableWarning
               onBlur={handleBlur}
-              style={isFading ? { opacity: 0.25, textDecoration: 'line-through', textDecorationColor: 'rgba(185,28,28,0.4)', transition: 'opacity 0.4s ease' } : undefined}
             />
-          )}
+          ) : null}
         </motion.div>
       )}
     </AnimatePresence>
@@ -83,5 +100,6 @@ export const ReportSection = memo(function ReportSection({ section, onTextChange
     && p.removed === n.removed
     && p.removing === n.removing
     && p.displayedText === n.displayedText
+    && p.oldText === n.oldText
     && prev.onTextChange === next.onTextChange;
 });

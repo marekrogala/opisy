@@ -54,7 +54,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         ...state,
         sections: state.sections.map(s =>
           s.id === action.id
-            ? { ...s, text: action.text, active: false, pending: false, locked: true, displayedText: undefined }
+            ? { ...s, text: action.text, active: false, pending: false, locked: true, displayedText: undefined, oldText: undefined }
             : s
         ),
       };
@@ -81,6 +81,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         sections: state.sections.map(s => ({
           ...s,
           active: s.id === action.id,
+          oldText: s.id === action.id ? s.text : s.oldText,
         })),
       };
 

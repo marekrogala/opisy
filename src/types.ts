@@ -8,6 +8,7 @@ export interface Section {
   removed?: boolean;
   removing?: boolean;
   displayedText?: string;  // for typewriter animation — grows char by char
+  oldText?: string;        // previous text shown during transition (strikethrough)
 }
 
 export interface TranscriptWord {
