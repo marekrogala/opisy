@@ -4,15 +4,15 @@
 
 // ============== Templates catalogue ==============
 const TEMPLATES = [
-  { id: 'mr_kolano_prawe', icon: '🦵', title: 'MR kolana prawego', meta: 'MR · użyty dziś', active: true },
-  { id: 'mr_kolano_lewe',  icon: '🦵', title: 'MR kolana lewego',  meta: 'MR · wczoraj' },
-  { id: 'mr_bark',         icon: '💪', title: 'MR barku',          meta: 'MR · 3 dni temu' },
-  { id: 'mr_kregoslup_ls', icon: '🧍', title: 'MR kręgosłupa L-S', meta: 'MR · tydzień temu' },
-  { id: 'mr_skok',         icon: '🦶', title: 'MR stawu skokowego',meta: 'MR · 2 tyg. temu' },
-  { id: 'mr_biodro',       icon: '🦴', title: 'MR stawu biodrowego', meta: 'MR · miesiąc temu' },
-  { id: 'usg_brzuch',      icon: '🩺', title: 'USG jamy brzusznej',meta: 'USG · regularnie' },
-  { id: 'tk_glowa',        icon: '🧠', title: 'TK głowy',          meta: 'TK · regularnie' },
-  { id: 'tk_klatka',       icon: '🫁', title: 'TK klatki piersiowej', meta: 'TK · czasem' },
+  { id: 'mr_kolano_prawe', icon: 'MR', title: 'MR kolana prawego',      meta: '12 sekcji · ostatnio dziś', active: true },
+  { id: 'mr_kolano_lewe',  icon: 'MR', title: 'MR kolana lewego',       meta: '12 sekcji · ostatnio wczoraj' },
+  { id: 'mr_bark',         icon: 'MR', title: 'MR barku',               meta: '10 sekcji · ostatnio 25.04' },
+  { id: 'mr_kregoslup_ls', icon: 'MR', title: 'MR kręgosłupa L-S',      meta: '14 sekcji · ostatnio 21.04' },
+  { id: 'mr_skok',         icon: 'MR', title: 'MR stawu skokowego',     meta: '11 sekcji · ostatnio 18.04' },
+  { id: 'mr_biodro',       icon: 'MR', title: 'MR stawu biodrowego',    meta: '11 sekcji · ostatnio 10.04' },
+  { id: 'usg_brzuch',      icon: 'USG', title: 'USG jamy brzusznej',    meta: '10 sekcji · ostatnio 24.04' },
+  { id: 'tk_glowa',        icon: 'TK', title: 'TK głowy',               meta: '9 sekcji · ostatnio 23.04' },
+  { id: 'tk_klatka',       icon: 'TK', title: 'TK klatki piersiowej',   meta: '10 sekcji · ostatnio 15.04' },
 ];
 
 // ============== Master template (MR knee R) ==============
@@ -213,7 +213,7 @@ function renderTemplates() {
   const wrap = $('#tplGrid');
   wrap.innerHTML = TEMPLATES.map(t => `
     <button class="tcard ${t.id === state.templateId ? 'tcard--active' : ''}" data-tpl="${t.id}">
-      <span class="tcard__icon">${t.icon}</span>
+      <span class="tcard__icon tcard__icon--badge">${t.icon}</span>
       <span class="tcard__title">${t.title}</span>
       <span class="tcard__meta">${t.meta}</span>
     </button>
@@ -271,7 +271,7 @@ function renderSections() {
   if (!ul) return;
   ul.innerHTML = state.sections.map(s => {
     const cls = s.removed ? 'removed' : (s.locked ? 'locked' : (s.active ? 'active' : (s.pending ? 'pending' : 'done')));
-    const lockIcon = s.locked ? '<span class="seclist__lockicon">🔒</span>' : '';
+    const lockIcon = s.locked ? '<span class="seclist__lockicon"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>' : '';
     return `<li class="${cls}" data-id="${s.id}">${escapeHtml(s.label)}${lockIcon}</li>`;
   }).join('');
   $$('li', ul).forEach(li => {
@@ -476,8 +476,13 @@ async function applyDiff(targetId, newText) {
   }
 }
 
+let _cleanupToastShown = false;
 async function applyImplicitCleanup(step) {
   if (!step.removeTargets || !step.removeTargets.length) return;
+  if (!_cleanupToastShown) {
+    _cleanupToastShown = true;
+    showToast('AI usunął nieistotne linie szablonu');
+  }
   for (const targetId of step.removeTargets) {
     const sec = state.sections.find(s => s.id === targetId);
     if (!sec || sec.locked || sec.removed) continue;
@@ -527,6 +532,13 @@ function renderPaperPreserve() {
 
 // ============== Story (auto demo) ==============
 async function runFullStory() {
+  // Disable export buttons during dictation
+  const exportBtns = ['#exportNext', '#dlWord', '#dlPdf'];
+  exportBtns.forEach(sel => {
+    const el = $(sel);
+    if (el) { el.disabled = true; el.title = 'Dostępne po zakończeniu opisu'; }
+  });
+
   for (const step of DICTATION_SCRIPT) {
     if (state.manualStop) break;
     await runDictationStep(step);
@@ -534,6 +546,11 @@ async function runFullStory() {
   }
   state.storyRunning = false;
   state.storyDone = true;
+  // Re-enable export buttons
+  exportBtns.forEach(sel => {
+    const el = $(sel);
+    if (el) { el.disabled = false; el.title = ''; }
+  });
   setMic(false, 'Opis gotowy ✓');
 
   // show finale banner on paper
@@ -544,7 +561,7 @@ async function runFullStory() {
     const locked = state.sections.filter(s => s.locked).length;
     const total = state.sections.filter(s => !s.removed).length;
     const elapsed = state.startTime ? Math.round((Date.now() - state.startTime) / 1000) : 0;
-    banner.innerHTML = `Opis gotowy · ${locked}/${total} zweryfikowane · ${Math.floor(elapsed/60)} min ${elapsed%60} s`;
+    banner.innerHTML = `Opis gotowy · ${locked}/${total} zweryfikowane · ${Math.floor(elapsed/60)} min ${elapsed%60} s · ~8 min szybciej niż ręcznie`;
     paper.prepend(banner);
   }
 
@@ -846,6 +863,7 @@ function fullReset() {
   state.storyDone = false;
   state.manualStop = false;
   state.isRecording = false;
+  _cleanupToastShown = false;
   transcriptBlock = null;
   const tr = $('#transcript');
   if (tr) tr.innerHTML = '<div class="transcript__empty">Tu pojawią się słowa, które dyktujesz…</div>';
