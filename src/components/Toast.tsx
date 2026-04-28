@@ -1,30 +1,23 @@
-import { useEffect, useRef } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 
 interface ToastProps {
   message: string | null;
 }
 
 export function Toast({ message }: ToastProps) {
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    if (message) {
-      el.hidden = false;
-      // Force reflow
-      void el.offsetHeight;
-      el.classList.add('show');
-    } else {
-      el.classList.remove('show');
-      const tid = setTimeout(() => { el.hidden = true; }, 240);
-      return () => clearTimeout(tid);
-    }
-  }, [message]);
-
   return (
-    <div ref={ref} className="toast" hidden>
-      {message}
-    </div>
+    <AnimatePresence>
+      {message && (
+        <motion.div
+          className="toast"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 10 }}
+          transition={{ duration: 0.2 }}
+        >
+          {message}
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

@@ -15,24 +15,18 @@ interface WorkspaceViewProps {
 }
 
 export function WorkspaceView({ state, dispatch, onShowToast, autoDemo = false }: WorkspaceViewProps) {
-  const transcriptRef = useRef<HTMLDivElement>(null);
-  const sectionRefs = useRef<Map<string, HTMLParagraphElement>>(new Map());
   const manualStopRef = useRef(false);
-  const micLevelRef = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
     manualStopRef.current = state.manualStop;
   }, [state.manualStop]);
 
-  const { startDemo } = useDemoRunner(dispatch, state, {
-    transcriptRef,
-    sectionRefs,
-    manualStopRef,
-    micLevelRef,
-  });
+  const { startDemo } = useDemoRunner(dispatch, manualStopRef);
 
   const speech = useSpeechRecognition({
     onResult: (text, _isFinal) => {
+      // Interim speech text — could dispatch to state if needed
+      // For now, store in a local ref so we don't fight React rendering
       const interim = document.getElementById('tpInterim');
       if (interim) interim.textContent = text;
     },
@@ -46,17 +40,17 @@ export function WorkspaceView({ state, dispatch, onShowToast, autoDemo = false }
       manualStopRef.current = true;
       dispatch({ type: 'SET_STORY_STATE', running: false, done: false, manualStop: true });
       dispatch({ type: 'SET_RECORDING', value: false });
-      window.dispatchEvent(new CustomEvent('mic-status', { detail: { statusText: 'Zatrzymano', active: false } }));
+      dispatch({ type: 'SET_MIC_STATUS', text: 'Zatrzymano' });
     } else if (state.isRecording) {
       speech.stop();
       dispatch({ type: 'SET_RECORDING', value: false });
-      window.dispatchEvent(new CustomEvent('mic-status', { detail: { statusText: 'Gotowy', active: false } }));
+      dispatch({ type: 'SET_MIC_STATUS', text: 'Gotowy' });
     } else {
       if (speech.isSupported) {
         const ok = speech.start();
         if (ok) {
           dispatch({ type: 'SET_RECORDING', value: true });
-          window.dispatchEvent(new CustomEvent('mic-status', { detail: { statusText: 'Nagrywam…', active: true } }));
+          dispatch({ type: 'SET_MIC_STATUS', text: 'Nagrywam…' });
         }
       } else {
         onShowToast('Przeglądarka nie obsługuje rozpoznawania mowy');
@@ -79,7 +73,7 @@ export function WorkspaceView({ state, dispatch, onShowToast, autoDemo = false }
         if (speech.isSupported) {
           speech.start();
           dispatch({ type: 'SET_RECORDING', value: true });
-          window.dispatchEvent(new CustomEvent('mic-status', { detail: { statusText: 'Nagrywam…', active: true } }));
+          dispatch({ type: 'SET_MIC_STATUS', text: 'Nagrywam…' });
         }
       }
     };
@@ -92,7 +86,7 @@ export function WorkspaceView({ state, dispatch, onShowToast, autoDemo = false }
       if (state.isRecording && !state.storyRunning) {
         speech.stop();
         dispatch({ type: 'SET_RECORDING', value: false });
-        window.dispatchEvent(new CustomEvent('mic-status', { detail: { statusText: 'Gotowy', active: false } }));
+        dispatch({ type: 'SET_MIC_STATUS', text: 'Gotowy' });
       }
     };
 
@@ -126,12 +120,14 @@ export function WorkspaceView({ state, dispatch, onShowToast, autoDemo = false }
       />
 
       <div className="workspace">
-        <TranscriptPanel ref={transcriptRef} isRecording={state.isRecording} />
+        <TranscriptPanel
+          transcriptBlocks={state.transcriptBlocks}
+          isRecording={state.isRecording}
+        />
         <ReportPanel
           sections={state.sections}
           patientInfo={state.patientInfo}
           dispatch={dispatch}
-          sectionRefs={sectionRefs}
           showStartButton={showStartButton}
           onStartDictation={handleStartDictation}
         />
@@ -140,7 +136,7 @@ export function WorkspaceView({ state, dispatch, onShowToast, autoDemo = false }
       <BottomBar
         isRecording={state.isRecording}
         storyRunning={state.storyRunning}
-        micLevelRef={micLevelRef}
+        micStatusText={state.micStatusText}
         onMicClick={handleMicClick}
         showDone={state.storyDone}
       />

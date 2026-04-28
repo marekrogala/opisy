@@ -28,7 +28,6 @@ export function App() {
     <div className="app">
       {state.currentView === 'list' && (
         <ListView
-          dispatch={dispatch}
           onOpenWorkspace={() => handleOpenWorkspace(true)}
           onNewExam={handleNewExam}
         />

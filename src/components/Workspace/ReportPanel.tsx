@@ -5,19 +5,17 @@ interface ReportPanelProps {
   sections: Section[];
   patientInfo: PatientInfo;
   dispatch: React.Dispatch<AppAction>;
-  sectionRefs: React.RefObject<Map<string, HTMLParagraphElement>>;
   showStartButton?: boolean;
   onStartDictation?: () => void;
 }
 
-export function ReportPanel({ sections, patientInfo, dispatch, sectionRefs, showStartButton, onStartDictation }: ReportPanelProps) {
+export function ReportPanel({ sections, patientInfo, dispatch, showStartButton, onStartDictation }: ReportPanelProps) {
   return (
     <div className="report-panel">
       <Paper
         sections={sections}
         patientInfo={patientInfo}
         dispatch={dispatch}
-        sectionRefs={sectionRefs}
       />
       {showStartButton && (
         <div style={{

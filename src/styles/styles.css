@@ -426,16 +426,9 @@ button:focus-visible, [contenteditable]:focus-visible {
 .transcript__word {
   display: inline-block;
   margin-right: 4px;
-  opacity: 0;
-  animation: wordIn 200ms var(--ease) forwards;
 }
 .transcript__word--active { color: var(--warning); font-weight: 500; }
 .transcript__word--done { color: var(--text-muted); }
-
-@keyframes wordIn {
-  from { opacity: 0; transform: translateY(2px); }
-  to   { opacity: 1; transform: none; }
-}
 
 .tp-interim {
   flex-shrink: 0;
@@ -661,15 +654,7 @@ button:focus-visible, [contenteditable]:focus-visible {
   100% { box-shadow: none; }
 }
 
-.section--removing {
-  animation: sectionRemove 750ms var(--ease) forwards;
-  pointer-events: none;
-}
-@keyframes sectionRemove {
-  0%   { opacity: 0.6; max-height: 200px; }
-  35%  { text-decoration: line-through; text-decoration-color: var(--danger); }
-  100% { opacity: 0; max-height: 0; padding: 0; margin: 0; border-width: 0; }
-}
+/* section--removing is now handled by framer-motion AnimatePresence exit animation */
 
 .section p {
   margin: 0;
@@ -816,6 +801,13 @@ button:focus-visible, [contenteditable]:focus-visible {
   border-radius: 999px;
   transition: width 80ms ease;
 }
+.meter-bar span.active {
+  animation: meterPulse 150ms ease infinite alternate;
+}
+@keyframes meterPulse {
+  from { width: 25%; }
+  to { width: 85%; }
+}
 
 .bottombar__status {
   font-size: var(--text-sm);
@@ -861,7 +853,7 @@ button:focus-visible, [contenteditable]:focus-visible {
   position: fixed;
   bottom: calc(var(--bottom-h) + 12px);
   left: 50%;
-  transform: translateX(-50%) translateY(8px);
+  transform: translateX(-50%);
   background: var(--accent);
   color: white;
   padding: 8px 16px;
@@ -869,13 +861,10 @@ button:focus-visible, [contenteditable]:focus-visible {
   font-size: var(--text-sm);
   box-shadow: var(--shadow-lg);
   z-index: 200;
-  opacity: 0;
-  transition: all 240ms var(--ease);
   pointer-events: none;
   white-space: nowrap;
   font-family: 'Inter', sans-serif;
 }
-.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
 /* ============================================================
    Buttons

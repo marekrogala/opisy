@@ -1,8 +1,6 @@
-import type { AppAction } from '../../types';
 import { REPORTS_LIST } from '../../data/reports';
 
 interface ListViewProps {
-  dispatch: React.Dispatch<AppAction>;
   onOpenWorkspace: () => void;
   onNewExam: () => void;
 }

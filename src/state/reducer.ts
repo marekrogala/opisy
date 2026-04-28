@@ -18,6 +18,8 @@ export const initialState: AppState = {
     examType: 'MR kolana prawego',
   },
   exportsEnabled: false,
+  transcriptBlocks: [],
+  micStatusText: 'Gotowy',
 };
 
 export function appReducer(state: AppState, action: AppAction): AppState {
@@ -35,6 +37,8 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         manualStop: false,
         saveStatus: 'idle',
         exportsEnabled: false,
+        transcriptBlocks: [],
+        micStatusText: 'Gotowy',
       };
 
     case 'UPDATE_SECTION_TEXT':
@@ -50,7 +54,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         ...state,
         sections: state.sections.map(s =>
           s.id === action.id
-            ? { ...s, text: action.text, active: false, pending: false, locked: true }
+            ? { ...s, text: action.text, active: false, pending: false, locked: true, displayedText: undefined }
             : s
         ),
       };
@@ -63,12 +67,21 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         ),
       };
 
+    case 'SET_SECTION_REMOVING':
+      return {
+        ...state,
+        sections: state.sections.map(s =>
+          s.id === action.id ? { ...s, removing: true } : s
+        ),
+      };
+
     case 'SET_ACTIVE_SECTION':
       return {
         ...state,
         sections: state.sections.map(s => ({
           ...s,
           active: s.id === action.id,
+          displayedText: s.id === action.id ? '' : s.displayedText,
         })),
       };
 
@@ -90,7 +103,45 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       };
 
     case 'ADD_TRANSCRIPT_BLOCK':
-      return state; // transcript is handled by DOM directly
+      return {
+        ...state,
+        transcriptBlocks: [
+          ...state.transcriptBlocks,
+          { id: action.id, words: [], done: false },
+        ],
+      };
+
+    case 'APPEND_TRANSCRIPT_WORD': {
+      const blocks = state.transcriptBlocks.map(b =>
+        b.id === action.blockId
+          ? { ...b, words: [...b.words, { text: action.word, active: true }] }
+          : b
+      );
+      return { ...state, transcriptBlocks: blocks };
+    }
+
+    case 'FINISH_TRANSCRIPT_BLOCK': {
+      const blocks = state.transcriptBlocks.map(b =>
+        b.id === action.blockId
+          ? { ...b, done: true, words: b.words.map(w => ({ ...w, active: false })) }
+          : b
+      );
+      return { ...state, transcriptBlocks: blocks };
+    }
+
+    case 'CLEAR_TRANSCRIPT':
+      return { ...state, transcriptBlocks: [] };
+
+    case 'SET_DISPLAYED_TEXT':
+      return {
+        ...state,
+        sections: state.sections.map(s =>
+          s.id === action.id ? { ...s, displayedText: action.text } : s
+        ),
+      };
+
+    case 'SET_MIC_STATUS':
+      return { ...state, micStatusText: action.text };
 
     case 'SHOW_TOAST':
       return { ...state, toastMessage: action.message };

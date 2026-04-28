@@ -1,31 +1,12 @@
-import { useEffect, useState } from 'react';
-
 interface BottomBarProps {
   isRecording: boolean;
   storyRunning: boolean;
-  micLevelRef: React.RefObject<HTMLSpanElement | null>;
+  micStatusText: string;
   onMicClick: () => void;
   showDone: boolean;
 }
 
-export function BottomBar({ isRecording, storyRunning, micLevelRef, onMicClick, showDone }: BottomBarProps) {
-  const [statusText, setStatusText] = useState('Gotowy');
-
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const evt = e as CustomEvent<{ statusText: string }>;
-      setStatusText(evt.detail.statusText);
-    };
-    window.addEventListener('mic-status', handler);
-    return () => window.removeEventListener('mic-status', handler);
-  }, []);
-
-  useEffect(() => {
-    const handler = () => setStatusText('Opis gotowy');
-    window.addEventListener('demo-complete', handler);
-    return () => window.removeEventListener('demo-complete', handler);
-  }, []);
-
+export function BottomBar({ isRecording, storyRunning, micStatusText, onMicClick, showDone }: BottomBarProps) {
   return (
     <div className="bottombar">
       <button
@@ -47,11 +28,11 @@ export function BottomBar({ isRecording, storyRunning, micLevelRef, onMicClick, 
 
       <div className="bottombar__meter">
         <div className="meter-bar">
-          <span ref={micLevelRef} id="micLevel" />
+          <span className={isRecording ? 'active' : ''} />
         </div>
       </div>
 
-      <div className="bottombar__status" id="micStatus">{statusText}</div>
+      <div className="bottombar__status" id="micStatus">{micStatusText}</div>
 
       <div className="bottombar__hint">
         <kbd>Space</kbd> push-to-talk
