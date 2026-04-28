@@ -640,11 +640,6 @@ button:focus-visible, [contenteditable]:focus-visible {
   100% { box-shadow: none; }
 }
 
-.section--editing {
-  background: rgba(29, 78, 216, 0.03);
-  border-left-color: var(--info);
-}
-
 .section--removing {
   animation: sectionRemove 750ms var(--ease) forwards;
   pointer-events: none;
@@ -655,26 +650,19 @@ button:focus-visible, [contenteditable]:focus-visible {
   100% { opacity: 0; max-height: 0; padding: 0; margin: 0; border-width: 0; }
 }
 
-.section p { margin: 0; outline: none; }
-
-/* Edit button */
-.section__edit {
-  position: absolute;
-  right: 8px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: transparent;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  font-size: var(--text-xs);
-  color: var(--text-muted);
-  padding: 2px 7px;
-  cursor: pointer;
-  opacity: 0;
-  transition: opacity var(--duration);
+.section p {
+  margin: 0;
+  outline: none;
+  cursor: text;
+  border-radius: 3px;
+  transition: background 180ms ease;
 }
-.section--locked:hover .section__edit { opacity: 1; }
-.section__edit:hover { background: var(--surface-subtle); color: var(--text); }
+.section p[contenteditable="true"]:hover {
+  background: rgba(0, 0, 0, 0.02);
+}
+.section p[contenteditable="true"]:focus {
+  background: rgba(29, 78, 216, 0.03);
+}
 
 /* ============================================================
    Typewriter cursor

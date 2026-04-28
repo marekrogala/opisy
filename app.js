@@ -207,42 +207,22 @@ function renderPaper() {
               : s.pending ? 'section--pending'
               : '';
     const html = escapeHtml(s.text).replace(/\n/g, '<br/>');
+    const editable = !s.active ? 'contenteditable="true"' : '';
     return `<div class="section ${cls}" data-section="${s.id}">
-      <p>${html}</p>
-      ${s.locked ? `<button class="section__edit" data-edit="${s.id}">edytuj</button>` : ''}
+      <p ${editable}>${html}</p>
     </div>`;
   }).join('');
 
-  // Wire edit buttons
-  $$('[data-edit]', body).forEach(btn => {
-    btn.addEventListener('click', e => {
-      e.stopPropagation();
-      toggleSectionEdit(btn.dataset.edit);
+  // Save edits on blur
+  $$('.section p[contenteditable]', body).forEach(p => {
+    p.addEventListener('blur', () => {
+      const sid = p.closest('.section')?.dataset.section;
+      const obj = state.sections.find(x => x.id === sid);
+      if (obj) obj.text = p.innerText.trim();
     });
   });
 }
 
-function toggleSectionEdit(sid) {
-  const sectionEl = $(`.section[data-section="${sid}"]`);
-  if (!sectionEl) return;
-  const p = sectionEl.querySelector('p');
-  if (!p) return;
-  const obj = state.sections.find(x => x.id === sid);
-  if (p.contentEditable === 'true') {
-    p.contentEditable = 'false';
-    sectionEl.classList.remove('section--editing');
-    if (obj) obj.text = p.innerText.trim();
-  } else {
-    p.contentEditable = 'true';
-    sectionEl.classList.add('section--editing');
-    p.focus();
-    p.addEventListener('blur', () => {
-      p.contentEditable = 'false';
-      sectionEl.classList.remove('section--editing');
-      if (obj) obj.text = p.innerText.trim();
-    }, { once: true });
-  }
-}
 
 // ============== Mic UI ==============
 let micLevelId = null;
@@ -350,16 +330,15 @@ async function runDictationStep(step) {
   sec.text = step.newText;
   if (sectionEl) {
     sectionEl.className = 'section section--locked';
-    if (!sectionEl.querySelector('.section__edit')) {
-      const btn = document.createElement('button');
-      btn.className = 'section__edit';
-      btn.dataset.edit = step.target;
-      btn.textContent = 'edytuj';
-      btn.addEventListener('click', e => { e.stopPropagation(); toggleSectionEdit(step.target); });
-      sectionEl.appendChild(btn);
+    const p = sectionEl.querySelector('p');
+    if (p) {
+      p.contentEditable = 'true';
+      p.addEventListener('blur', () => {
+        const obj = state.sections.find(x => x.id === step.target);
+        if (obj) obj.text = p.innerText.trim();
+      });
     }
   }
-  if (step.showLockToast) showToast('Sekcja zablokowana — model jej nie zmieni');
   if (step.removeTargets?.length) await applyCleanup(step.removeTargets);
   setMic(false, 'Gotowy');
   flashSave();
