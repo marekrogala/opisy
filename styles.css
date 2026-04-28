@@ -578,14 +578,33 @@ button:focus-visible, [contenteditable]:focus-visible {
   border-bottom-color: rgba(29, 78, 216, 0.3);
 }
 
-/* Live transcript block (real speech recognition) */
-.transcript__block--live {
-  color: var(--text);
-  font-weight: 500;
-}
-.transcript__block--live.done {
-  opacity: 0.4;
+/* Unprocessed real speech — grey with ? marker */
+.transcript__block--unprocessed {
+  color: var(--text-subtle);
   font-weight: 400;
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+  opacity: 0.65;
+}
+.transcript__block--unprocessed.done {
+  opacity: 0.35;
+}
+.transcript__marker {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--surface-subtle);
+  border: 1px solid var(--border-strong);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-subtle);
+  font-family: 'Inter', sans-serif;
+  margin-top: 2px;
 }
 
 /* Header patient info */

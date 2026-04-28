@@ -422,7 +422,14 @@ function initSpeechRecognition() {
 
     if (!currentBlock) {
       currentBlock = document.createElement('div');
-      currentBlock.className = 'transcript__block transcript__block--live';
+      currentBlock.className = 'transcript__block transcript__block--unprocessed';
+      const marker = document.createElement('span');
+      marker.className = 'transcript__marker';
+      marker.textContent = '?';
+      currentBlock.appendChild(marker);
+      const textNode = document.createElement('span');
+      textNode.className = 'transcript__text';
+      currentBlock.appendChild(textNode);
       tr.appendChild(currentBlock);
     }
 
@@ -430,7 +437,8 @@ function initSpeechRecognition() {
     for (let i = event.resultIndex; i < event.results.length; i++) {
       text += event.results[i][0].transcript;
     }
-    currentBlock.textContent = text;
+    const textEl = currentBlock.querySelector('.transcript__text');
+    if (textEl) textEl.textContent = text;
     tr.scrollTop = tr.scrollHeight;
   };
 
