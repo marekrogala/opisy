@@ -804,6 +804,24 @@ button:focus-visible, [contenteditable]:focus-visible {
   font-feature-settings: 'tnum';
 }
 
+.bottombar__hint {
+  font-size: var(--text-xs);
+  color: var(--text-subtle);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.bottombar__hint kbd {
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1px 5px;
+  font-size: 10px;
+  font-family: ui-monospace, 'SF Mono', monospace;
+  font-weight: 500;
+  box-shadow: 0 1px 0 var(--border);
+}
+
 .bottombar__spacer { flex: 1; }
 
 .bottombar__done {
