@@ -104,6 +104,7 @@ const state = {
   isRecording: false,
   storyRunning: false,
   storyDone: false,
+  storyStep: 0,
   manualStop: false,
 };
 
@@ -221,16 +222,10 @@ renderTemplates();
 
 // ============== Dictation init ==============
 function initDictation() {
-  if (!state.startTime) state.startTime = Date.now();
   renderSections();
   renderPaper();
-  startTimer();
-
-  // auto-run story once
-  if (!state.storyRunning && !state.storyDone) {
-    state.storyRunning = true;
-    setTimeout(runFullStory, 800);
-  }
+  // story starts on first mic click (set in mic handler)
+  if (state.startTime) startTimer();
 }
 
 let liveTimerId = null;
@@ -409,8 +404,8 @@ async function runDictationStep(step) {
   sec.locked = true;
   sec.text = step.newText;
 
-  // implicit cleanup: remove any pending sections that are contradicted
-  applyImplicitCleanup(step.target);
+  // implicit cleanup: AI may remove still-pending sections (never locked ones)
+  await applyImplicitCleanup(step.target);
 
   renderSections();
   renderPaperPreserve();
@@ -456,25 +451,26 @@ async function applyDiff(targetId, newText) {
   }
 }
 
-// "implicit cleanup" — when a finding is dictated, fade out PENDING contradictory lines
+// AI cleanup of PENDING sections (never touches LOCKED ones)
+// Demonstrates the guarantee: model can tidy up the remaining template ahead of the cursor,
+// but never modifies what the doctor has already verified.
 const CLEANUP_RULES = {
-  // Once meniscus pathology is locked, remove generic lateral menisc placeholder? Keep it (still useful).
-  // Once ACL is dictated as torn, remove pending PCL "prawidłowe" — we keep PCL as it's a separate structure.
-  // But: we drop "Tkanki miękkie" pending if not dictated by end? No, keep as default.
-  // Real example: if doctor dictates obrzęk szpiku in kłykieć boczny — pending kosci is already replaced.
-  // So this rule mainly demonstrates: once "wskazanie" or another section becomes contradictory, it goes.
+  // After bone-marrow edema is dictated, AI consolidates an unrelated pending placeholder.
+  kosci: ['tkanki'],
 };
 
-function applyImplicitCleanup(justLocked) {
-  // demonstration: when ACL is locked with rupture, remove the redundant pending "prawidłowe" hints
-  // by fading out PENDING sections that are clearly redundant.
-  // We'll fade out chrząstka & tkanki later in the story to show AI cleanup.
-  if (justLocked === 'kosci') {
-    // mark "tkanki" as still pending but signal it's "may be removed" — actually we keep it.
-  }
-  if (justLocked === 'wysiek') {
-    // After 4 dictations, fade out one redundant pending: "Łąkotka boczna" stays, but if we want to show AI removing
-    // a now-irrelevant section, we can drop nothing here — keep all to be safe in clinical context.
+async function applyImplicitCleanup(justLocked) {
+  const targets = CLEANUP_RULES[justLocked];
+  if (!targets) return;
+  for (const id of targets) {
+    const sec = state.sections.find(s => s.id === id);
+    if (!sec || sec.locked || sec.removed) continue;
+    sec.removed = true;
+    const el = $(`.section[data-section="${id}"]`);
+    if (el) {
+      el.classList.add('section--removing');
+      await sleep(700);
+    }
   }
 }
 
@@ -510,38 +506,47 @@ function renderPaperPreserve() {
   });
 }
 
-// ============== Story (auto demo) ==============
+// ============== Story (auto-flowing dictation) ==============
 async function runFullStory() {
-  for (const step of DICTATION_SCRIPT) {
+  while (state.storyStep < DICTATION_SCRIPT.length) {
     if (state.manualStop) break;
+    const step = DICTATION_SCRIPT[state.storyStep];
     await runDictationStep(step);
+    state.storyStep += 1;
+    if (state.manualStop) break;
     await sleep(900);
   }
-  state.storyRunning = false;
-  state.storyDone = true;
-  // small celebratory pause
-  await sleep(700);
-  setMic(false, 'Opis gotowy ✓');
-  // auto-advance to export after a moment
-  await sleep(1400);
-  if (!state.manualStop) showScreen('export');
+  if (state.storyStep >= DICTATION_SCRIPT.length) {
+    state.storyRunning = false;
+    state.storyDone = true;
+    await sleep(700);
+    setMic(false, 'Opis gotowy ✓');
+    await sleep(1400);
+    if (!state.manualStop) showScreen('export');
+  }
 }
 
-// ============== Manual mic mode ==============
-$('#micBtn')?.addEventListener('click', () => {
+// ============== Mic trigger — starts the dictation story ==============
+function triggerDictation() {
+  if (state.storyDone) return;
   if (state.storyRunning) {
+    // pause
     state.manualStop = true;
-    setMic(false, 'Gotowy');
     state.storyRunning = false;
+    setMic(false, 'Wstrzymano — kliknij, żeby kontynuować');
     return;
   }
-  if (state.isRecording) {
-    setMic(false, 'Gotowy');
-  } else {
-    setMic(true, 'Słucham…');
-    setTimeout(() => setMic(false, 'Gotowy'), 1800);
+  // first click (or resume)
+  if (!state.startTime) {
+    state.startTime = Date.now();
+    startTimer();
   }
-});
+  state.manualStop = false;
+  state.storyRunning = true;
+  runFullStory();
+}
+
+$('#micBtn')?.addEventListener('click', triggerDictation);
 
 document.addEventListener('keydown', (e) => {
   if (e.code !== 'Space' || e.repeat) return;
@@ -549,18 +554,7 @@ document.addEventListener('keydown', (e) => {
   const ae = document.activeElement;
   if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.isContentEditable)) return;
   e.preventDefault();
-  setMic(true, 'Słucham… (puść SPACJĘ, żeby zakończyć)');
-});
-document.addEventListener('keyup', (e) => {
-  if (e.code !== 'Space') return;
-  if (state.currentScreen !== 'dictation') return;
-  const ae = document.activeElement;
-  if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.isContentEditable)) return;
-  e.preventDefault();
-  if (state.isRecording) {
-    setMic(false, 'Przetwarzam…');
-    setTimeout(() => setMic(false, 'Gotowy'), 700);
-  }
+  triggerDictation();
 });
 
 // ============== Export step ==============
@@ -594,8 +588,6 @@ function initExport() {
   $('#statWords').textContent = state.totalDictatedWords;
   const out = ex.sections.map(s => s.text.split(/\s+/).filter(Boolean).length).reduce((a,b)=>a+b,0);
   $('#statOutput').textContent = out;
-  const saved = Math.max(0, Math.round((out * 0.6 - state.totalDictatedWords) / 25));
-  $('#statSave').textContent = `~${saved + 6} min`;
 }
 
 // ============== Real downloads ==============
@@ -763,6 +755,7 @@ function fullReset() {
   state.totalDictatedWords = 0;
   state.storyRunning = false;
   state.storyDone = false;
+  state.storyStep = 0;
   state.manualStop = false;
   state.isRecording = false;
   transcriptBlock = null;

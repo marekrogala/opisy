@@ -8,297 +8,279 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:wght@400;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
+  <script src="https://unpkg.com/docx@8.5.0/build/index.umd.min.js"></script>
+  <script src="https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 </head>
 <body>
-  <div id="app">
+  <div id="app" class="app">
 
-    <!-- ============== SCREEN 1: SETUP ============== -->
-    <section class="screen screen--setup" data-screen="setup">
-      <header class="setup__header">
+    <!-- ============== TITLE BAR (always visible) ============== -->
+    <header class="titlebar">
+      <div class="titlebar__left">
+        <div class="traffic">
+          <span class="traffic__dot traffic__dot--red"></span>
+          <span class="traffic__dot traffic__dot--yellow"></span>
+          <span class="traffic__dot traffic__dot--green"></span>
+        </div>
         <div class="brand">
           <span class="brand__mark">◐</span>
           <span class="brand__name">Opisy</span>
-          <span class="brand__tag">Asystent radiologa</span>
         </div>
-        <span class="badge badge--demo">MOCKUP / DEMO</span>
-      </header>
-
-      <div class="setup__hero">
-        <h1>Twórz opisy badań głosem,<br/>w swoim stylu.</h1>
-        <p class="lede">
-          Dyktujesz skróty po polsku, system zamienia je na pełne zdania
-          dopasowane do tego, jak Ty piszesz opisy. Szablon zmienia się
-          na żywo w gotowy opis.
-        </p>
-      </div>
-
-      <div class="setup__cards">
-        <div class="card setup-card">
-          <div class="card__icon">📋</div>
-          <h3>1. Szablony badań</h3>
-          <p>Wgraj swoje pliki Word z szablonami opisów (MR, TK, USG, RTG).</p>
-          <ul class="filelist">
-            <li>MR_kolano_prawe.docx <span class="ok">✓</span></li>
-            <li>MR_kolano_lewe.docx <span class="ok">✓</span></li>
-            <li>MR_bark.docx <span class="ok">✓</span></li>
-            <li>MR_kregoslup_L.docx <span class="ok">✓</span></li>
-          </ul>
-          <button class="btn btn--ghost" disabled>+ Dodaj szablon</button>
-        </div>
-
-        <div class="card setup-card">
-          <div class="card__icon">🧠</div>
-          <h3>2. Twoje opisy do nauki stylu</h3>
-          <p>Wgraj 30–300 swoich gotowych opisów (Word/PDF). System wyciągnie
-          z nich Twój styl pisania — bez zapamiętywania danych pacjentów.</p>
-          <div class="progress">
-            <div class="progress__bar" style="width: 78%"></div>
-          </div>
-          <div class="muted">Zanonimizowano i zindeksowano <strong>47 / 60</strong> opisów</div>
-          <button class="btn btn--ghost" disabled>+ Dodaj opisy</button>
-        </div>
-
-        <div class="card setup-card">
-          <div class="card__icon">🔒</div>
-          <h3>3. Prywatność danych</h3>
-          <ul class="check">
-            <li><span class="ok">✓</span> Dane pacjentów (imię, PESEL, daty) usuwane przed wysłaniem</li>
-            <li><span class="ok">✓</span> Whisper API + Claude API w trybie zero-retention</li>
-            <li><span class="ok">✓</span> Szablony i baza stylu trzymane lokalnie</li>
-          </ul>
+        <div class="titlebar__doc">
+          <span class="titlebar__doc-name" id="docName">Nowy opis</span>
+          <span class="titlebar__sep">·</span>
+          <span class="titlebar__patient" id="docPatient">—</span>
         </div>
       </div>
-
-      <div class="setup__actions">
-        <button class="btn btn--primary btn--lg" data-go="patient">
-          Zacznij nowy opis →
-        </button>
-        <button class="btn btn--secondary btn--lg" id="runFullDemo">
-          ▶ Uruchom pełne demo
+      <div class="titlebar__right">
+        <span class="save-chip" id="saveChip">
+          <span class="save-chip__dot"></span>
+          <span id="saveChipText">Zapisane teraz</span>
+        </span>
+        <button class="iconbtn" id="restartBtn" title="Uruchom demo od nowa">
+          <span>↻</span> <span class="iconbtn__label">Restart demo</span>
         </button>
       </div>
-    </section>
+    </header>
 
-    <!-- ============== SCREEN 2: PATIENT DATA ============== -->
-    <section class="screen screen--patient" data-screen="patient" hidden>
-      <header class="topbar">
-        <button class="btn btn--ghost" data-go="setup">← Wróć</button>
-        <div class="breadcrumbs">
-          <span>Nowy opis</span>
-          <span class="breadcrumbs__sep">›</span>
-          <strong>Dane badania</strong>
-          <span class="breadcrumbs__sep">›</span>
-          <span class="muted">Szablon</span>
-          <span class="breadcrumbs__sep">›</span>
-          <span class="muted">Dyktowanie</span>
-          <span class="breadcrumbs__sep">›</span>
-          <span class="muted">Opis</span>
+    <div class="app__body">
+
+      <!-- ============== SIDE RAIL (steps) ============== -->
+      <nav class="rail">
+        <div class="rail__steps">
+          <button class="rail__step" data-step="patient">
+            <span class="rail__num">1</span>
+            <span class="rail__label">Pacjent</span>
+          </button>
+          <button class="rail__step" data-step="template">
+            <span class="rail__num">2</span>
+            <span class="rail__label">Szablon</span>
+          </button>
+          <button class="rail__step" data-step="dictation">
+            <span class="rail__num">3</span>
+            <span class="rail__label">Dyktowanie</span>
+          </button>
+          <button class="rail__step" data-step="export">
+            <span class="rail__num">4</span>
+            <span class="rail__label">Eksport</span>
+          </button>
         </div>
-        <div></div>
-      </header>
-
-      <div class="patient">
-        <div class="patient__form">
-          <h2>Dane pacjenta i badania</h2>
-          <p class="muted">Te dane zostaną <strong>tylko w nagłówku Twojego opisu</strong>.
-            Do API (Whisper, Claude) wysyłana jest wyłącznie treść medyczna — bez personaliów.</p>
-
-          <div class="form-grid">
-            <label>
-              <span class="label">Inicjały / ID pacjenta</span>
-              <input type="text" id="pInitials" value="J.K." placeholder="np. J.K. albo P-2024-1827" />
-            </label>
-            <label>
-              <span class="label">Wiek</span>
-              <input type="number" id="pAge" value="34" min="0" max="120" />
-            </label>
-            <label>
-              <span class="label">Płeć</span>
-              <select id="pSex">
-                <option value="K">K</option>
-                <option value="M" selected>M</option>
-              </select>
-            </label>
-            <label>
-              <span class="label">Data badania</span>
-              <input type="date" id="pDate" />
-            </label>
-            <label class="form-grid__wide">
-              <span class="label">Lekarz kierujący</span>
-              <input type="text" id="pReferrer" value="dr P. Nowak, ortopedia" />
-            </label>
-            <label class="form-grid__wide">
-              <span class="label">Wskazanie kliniczne</span>
-              <textarea id="pIndication" rows="2"
-                placeholder="np. ból kolana po urazie, podejrzenie uszkodzenia łąkotki…">ból i obrzęk kolana po urazie skrętnym, podejrzenie uszkodzenia łąkotki</textarea>
-            </label>
-          </div>
-
-          <div class="privacy-note">
-            <span class="privacy-note__icon">🔒</span>
+        <div class="rail__bottom">
+          <div class="rail__privacy">
+            <div class="rail__privacy-icon">🔒</div>
             <div>
-              <strong>Co wychodzi poza Twój komputer:</strong>
-              <span class="muted">tekst dyktatu (np. "ACL trzeciego stopnia") + szablon medyczny.
-              <strong>Nie wychodzą:</strong> inicjały, data, wiek, lekarz kierujący.</span>
+              <div class="rail__privacy-title">Tryb prywatny</div>
+              <div class="rail__privacy-sub">Whisper lokalnie · LLM zero-retention</div>
             </div>
           </div>
         </div>
+      </nav>
 
-        <aside class="patient__side">
-          <h3>Anonimizacja</h3>
-          <ul class="check small">
-            <li><span class="ok">✓</span> Imię, nazwisko</li>
-            <li><span class="ok">✓</span> PESEL, numer telefonu</li>
-            <li><span class="ok">✓</span> Data urodzenia, daty z kontekstu</li>
-            <li><span class="ok">✓</span> Adres, NIP</li>
-          </ul>
-          <hr/>
-          <button class="btn btn--primary btn--lg btn--block" data-go="templates">
-            Dalej: wybierz szablon →
-          </button>
-          <button class="btn btn--ghost btn--block" data-go="setup">Anuluj</button>
-        </aside>
-      </div>
-    </section>
+      <!-- ============== MAIN WORKAREA ============== -->
+      <main class="workarea">
 
-    <!-- ============== SCREEN 3: TEMPLATE PICK ============== -->
-    <section class="screen" data-screen="templates" hidden>
-      <header class="topbar">
-        <button class="btn btn--ghost" data-go="patient">← Wróć</button>
-        <div class="breadcrumbs">
-          <span>Nowy opis</span>
-          <span class="breadcrumbs__sep">›</span>
-          <span class="muted">Dane</span>
-          <span class="breadcrumbs__sep">›</span>
-          <strong>Szablon</strong>
-          <span class="breadcrumbs__sep">›</span>
-          <span class="muted">Dyktowanie</span>
-          <span class="breadcrumbs__sep">›</span>
-          <span class="muted">Opis</span>
-        </div>
-        <input type="search" class="search" id="templateSearch" placeholder="Szukaj szablonu…" />
-      </header>
+        <!-- ============== STEP 1: PATIENT ============== -->
+        <section class="step" data-screen="patient">
+          <div class="step__inner step__inner--narrow">
+            <div class="step__head">
+              <h2>Dane pacjenta</h2>
+              <p class="step__sub">Wprowadź dane do karty. Imię, nazwisko i PESEL zostaną zanonimizowane przed wysłaniem do modelu językowego.</p>
+            </div>
 
-      <div class="templates-grid" id="templatesGrid">
-        <!-- generated by JS -->
-      </div>
+            <div class="form-card">
+              <div class="form-row">
+                <label>
+                  <span class="form-label">Imię</span>
+                  <div class="anon-input">
+                    <input type="text" id="fName" value="Anna" autocomplete="off" />
+                    <span class="anon-chip" id="fNameAnon">→ [zanonimizowano]</span>
+                  </div>
+                </label>
+                <label>
+                  <span class="form-label">Nazwisko</span>
+                  <div class="anon-input">
+                    <input type="text" id="lName" value="Kowalska" autocomplete="off" />
+                    <span class="anon-chip" id="lNameAnon">→ [zanonimizowano]</span>
+                  </div>
+                </label>
+              </div>
 
-      <div class="muted templates-hint">
-        💡 W demo wszystkie 4 szablony mają działający scenariusz dyktatu.
-      </div>
-    </section>
+              <div class="form-row">
+                <label>
+                  <span class="form-label">PESEL</span>
+                  <div class="anon-input">
+                    <input type="text" id="pesel" value="84062512345" inputmode="numeric" maxlength="11" />
+                    <span class="anon-chip" id="peselAnon">→ Pacjent #4471</span>
+                  </div>
+                </label>
+                <label>
+                  <span class="form-label">Typ badania</span>
+                  <select id="examType">
+                    <option value="mr_kolano_prawe">MR kolana prawego</option>
+                    <option value="mr_kolano_lewe">MR kolana lewego</option>
+                    <option value="mr_bark">MR barku</option>
+                    <option value="mr_kregoslup_ls">MR kręgosłupa L-S</option>
+                    <option value="mr_skok">MR stawu skokowego</option>
+                    <option value="usg_brzuch">USG jamy brzusznej</option>
+                    <option value="tk_glowa">TK głowy</option>
+                  </select>
+                </label>
+              </div>
 
-    <!-- ============== SCREEN 4: DICTATION ============== -->
-    <section class="screen screen--dictation" data-screen="dictation" hidden>
-      <header class="topbar topbar--dictation">
-        <button class="btn btn--ghost" data-go="templates">← Szablony</button>
-        <div class="topbar__title">
-          <strong id="dictTemplateName">MR kolana prawego</strong>
-          <span class="muted" id="dictPatientLabel">· J.K., M, 34 l.</span>
-        </div>
-        <div class="topbar__actions">
-          <button class="btn btn--ghost" id="undoBtn" title="Cofnij ostatnią zmianę">↶ Cofnij</button>
-          <button class="btn btn--primary" data-go="export">Zakończ →</button>
-        </div>
-      </header>
+              <div class="form-row">
+                <label class="form-row__full">
+                  <span class="form-label">Skierowanie / wskazanie</span>
+                  <input type="text" id="refer" value="Ból kolana, podejrzenie uszkodzenia łąkotki przyśrodkowej. Uraz skrętny 3 tyg. temu." />
+                </label>
+              </div>
 
-      <div class="dictation">
-        <aside class="dictation__sections">
-          <h4>Sekcje opisu</h4>
-          <ul id="sectionList"></ul>
-          <div class="legend">
-            <div class="legend__item"><span class="dot dot--empty"></span>nie zmienione</div>
-            <div class="legend__item"><span class="dot dot--modified"></span>opisano patologię</div>
-            <div class="legend__item"><span class="dot dot--edited"></span>edytowano ręcznie</div>
+              <div class="form-foot">
+                <div class="form-foot__hint">
+                  <span class="form-foot__icon">🔒</span>
+                  Po kliknięciu „Dalej" dane osobowe nie opuszczają Twojego komputera. Do AI trafia <strong>Pacjent&nbsp;#4471</strong>.
+                </div>
+                <button class="btn btn--primary btn--lg" id="patientNext">Dalej →</button>
+              </div>
+            </div>
           </div>
-        </aside>
+        </section>
 
-        <main class="dictation__report" id="reportRoot">
-          <!-- generated by JS -->
-        </main>
+        <!-- ============== STEP 2: TEMPLATE ============== -->
+        <section class="step" data-screen="template" hidden>
+          <div class="step__inner">
+            <div class="step__head step__head--row">
+              <div>
+                <h2>Wybierz szablon</h2>
+                <p class="step__sub">Twoje szablony są wgrane lokalnie. Wybierz badanie, które właśnie opisujesz.</p>
+              </div>
+              <input type="search" class="search" placeholder="Szukaj szablonu…" id="tplSearch" />
+            </div>
 
-        <aside class="dictation__voice">
-          <div class="mic">
-            <button class="mic__btn" id="micBtn">
-              <span class="mic__icon">🎙</span>
-              <span class="mic__label">Trzymaj <kbd>SPACJA</kbd> i mów</span>
-            </button>
-            <div class="mic__level"><span id="micLevel"></span></div>
-            <div class="mic__status muted" id="micStatus">Gotowy</div>
+            <div class="tpl-grid" id="tplGrid"></div>
           </div>
+        </section>
 
-          <div class="transcript">
-            <h4>Co powiedziałaś</h4>
-            <ul class="transcript__list" id="transcriptList">
-              <li class="transcript__hint muted">Tu pojawi się Twój dyktat…</li>
-            </ul>
+        <!-- ============== STEP 3: DICTATION ============== -->
+        <section class="step step--full" data-screen="dictation" hidden>
+          <div class="dict">
+
+            <!-- LEFT: progress + live transcript -->
+            <aside class="dict__left">
+              <div class="panel">
+                <div class="panel__head">
+                  <span class="panel__title">Sekcje opisu</span>
+                  <span class="panel__hint" id="sectionCount">0 / 0</span>
+                </div>
+                <ul class="seclist" id="sectionList"></ul>
+              </div>
+
+              <div class="panel panel--transcript">
+                <div class="panel__head">
+                  <span class="panel__title">Transkrypcja na żywo</span>
+                  <span class="livedot" id="liveDot"></span>
+                </div>
+                <div class="transcript" id="transcript">
+                  <div class="transcript__empty">Tu pojawią się słowa, które dyktujesz…</div>
+                </div>
+              </div>
+            </aside>
+
+            <!-- CENTER: report document -->
+            <main class="dict__center">
+              <div class="paper" id="paper">
+                <header class="paper__head">
+                  <h1 id="paperTitle">REZONANS MAGNETYCZNY KOLANA PRAWEGO</h1>
+                  <div class="paper__meta" id="paperMeta">
+                    Pacjent: Pacjent #4471 · Data badania: dziś · Lekarz: dr Kowalska
+                  </div>
+                </header>
+                <div id="paperBody"></div>
+              </div>
+            </main>
+
+            <!-- RIGHT: mic + stats + export -->
+            <aside class="dict__right">
+              <div class="panel mic-panel">
+                <button class="mic" id="micBtn">
+                  <div class="mic__halo"></div>
+                  <div class="mic__core">
+                    <span class="mic__icon">🎙</span>
+                  </div>
+                </button>
+                <div class="mic__status" id="micStatus">Kliknij, żeby zacząć</div>
+                <div class="mic__hint">
+                  Kliknij mikrofon lub <kbd>SPACJA</kbd>, żeby rozpocząć dyktowanie.
+                </div>
+                <div class="mic__level"><span id="micLevel"></span></div>
+              </div>
+
+              <div class="panel stats-panel">
+                <div class="panel__head"><span class="panel__title">Postęp sesji</span></div>
+                <div class="stat"><span>Czas</span><strong id="liveTime">0:00</strong></div>
+                <div class="stat"><span>Słów dyktatu</span><strong id="liveDictWords">0</strong></div>
+                <div class="stat"><span>Słów w opisie</span><strong id="liveOutWords">0</strong></div>
+                <div class="stat"><span>Sekcji zatwierdzonych</span><strong id="liveLocked">0</strong></div>
+              </div>
+
+              <div class="panel export-panel">
+                <div class="panel__head"><span class="panel__title">Eksport</span></div>
+                <button class="btn btn--primary btn--block" id="exportNext">Zakończ i wyeksportuj →</button>
+                <button class="btn btn--ghost btn--block btn--sm" id="dlWord">📄 Pobierz Word</button>
+                <button class="btn btn--ghost btn--block btn--sm" id="dlPdf">🖨 Pobierz PDF</button>
+              </div>
+            </aside>
+
           </div>
+        </section>
 
-          <div class="demo-controls">
-            <h4>🎬 Symulacja dyktatu</h4>
-            <p class="muted small">Każdy przycisk = jeden skrót, jak gdybyś go wypowiedziała:</p>
-            <div class="demo-buttons" id="demoButtons"></div>
-            <button class="btn btn--secondary btn--block" id="demoAuto">▶ Auto-demo (cały opis)</button>
-            <hr class="thin"/>
-            <p class="muted small"><strong>💡 Edycja ręczna:</strong> kliknij dowolne zdanie w opisie i pisz po klawiaturze. Enter = zapisz, Esc = anuluj.</p>
+        <!-- ============== STEP 4: EXPORT ============== -->
+        <section class="step" data-screen="export" hidden>
+          <div class="step__inner">
+            <div class="step__head step__head--row">
+              <div>
+                <h2>Gotowy opis</h2>
+                <p class="step__sub">Sprawdź dokument i pobierz w wybranym formacie.</p>
+              </div>
+              <button class="btn btn--ghost" data-go="dictation">← Wróć do edycji</button>
+            </div>
+
+            <div class="export-grid">
+              <article class="export__paper" id="exportPaper"></article>
+
+              <aside class="export__side">
+                <div class="panel">
+                  <div class="panel__head"><span class="panel__title">Pobierz</span></div>
+                  <button class="btn btn--primary btn--block btn--lg" id="exportWord">📄 Pobierz Word (.docx)</button>
+                  <button class="btn btn--secondary btn--block btn--lg" id="exportPdf">🖨 Pobierz PDF</button>
+                </div>
+
+                <div class="panel">
+                  <div class="panel__head"><span class="panel__title">Podsumowanie</span></div>
+                  <div class="stat"><span>Czas opisu</span><strong id="statTime">—</strong></div>
+                  <div class="stat"><span>Słów dyktatu</span><strong id="statWords">—</strong></div>
+                  <div class="stat"><span>Słów w opisie</span><strong id="statOutput">—</strong></div>
+                </div>
+
+                <div class="panel">
+                  <div class="panel__head"><span class="panel__title">Prywatność</span></div>
+                  <ul class="check">
+                    <li><span class="ok">✓</span> Imię, nazwisko, PESEL zanonimizowane przed wysłaniem do AI</li>
+                    <li><span class="ok">✓</span> Whisper lokalnie, LLM w trybie zero-retention</li>
+                    <li><span class="ok">✓</span> Dokument zapisany tylko u Ciebie</li>
+                  </ul>
+                </div>
+
+                <button class="btn btn--ghost btn--block" id="newReport">+ Nowy opis</button>
+              </aside>
+            </div>
           </div>
-        </aside>
-      </div>
-    </section>
+        </section>
 
-    <!-- ============== SCREEN 5: EXPORT ============== -->
-    <section class="screen screen--export" data-screen="export" hidden>
-      <header class="topbar">
-        <button class="btn btn--ghost" data-go="dictation">← Wróć do edycji</button>
-        <div class="breadcrumbs">
-          <span class="muted">Nowy opis</span>
-          <span class="breadcrumbs__sep">›</span>
-          <span class="muted">Dane</span>
-          <span class="breadcrumbs__sep">›</span>
-          <span class="muted">Szablon</span>
-          <span class="breadcrumbs__sep">›</span>
-          <span class="muted">Dyktowanie</span>
-          <span class="breadcrumbs__sep">›</span>
-          <strong>Opis</strong>
-        </div>
-        <div></div>
-      </header>
+      </main>
+    </div>
 
-      <div class="export">
-        <article class="export__paper" id="exportPaper">
-          <!-- generated by JS -->
-        </article>
-
-        <aside class="export__side">
-          <h3>Pobierz</h3>
-          <button class="btn btn--primary btn--lg btn--block" id="dlWord">
-            <span>📄</span> Pobierz jako Word (.doc)
-          </button>
-          <button class="btn btn--secondary btn--block" id="dlPdf">
-            <span>🖨</span> Drukuj / zapisz jako PDF
-          </button>
-          <button class="btn btn--secondary btn--block" id="dlTxt">
-            <span>📝</span> Pobierz jako tekst (.txt)
-          </button>
-          <button class="btn btn--secondary btn--block" id="dlCopy">
-            <span>📋</span> <span id="copyLabel">Skopiuj do schowka</span>
-          </button>
-          <button class="btn btn--ghost btn--block" disabled>↗ Wyślij do PACS (mock)</button>
-
-          <hr/>
-
-          <h3>Statystyki</h3>
-          <div class="stat"><span>Czas opisu</span><strong id="statTime">—</strong></div>
-          <div class="stat"><span>Słów dyktatu</span><strong id="statWords">—</strong></div>
-          <div class="stat"><span>Słów w opisie</span><strong id="statOutput">—</strong></div>
-          <div class="stat"><span>Edycje ręczne</span><strong id="statEdits">—</strong></div>
-          <div class="stat"><span>Szacowana oszczędność</span><strong class="ok" id="statSaved">—</strong></div>
-
-          <hr/>
-          <button class="btn btn--ghost btn--block" data-go="setup">+ Nowy opis</button>
-        </aside>
-      </div>
-    </section>
+    <!-- toast -->
+    <div class="toast" id="toast" hidden></div>
   </div>
 
   <script src="app.js"></script>
