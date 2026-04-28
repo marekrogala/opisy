@@ -28,7 +28,8 @@ export const ReportSection = memo(function ReportSection({ section, onTextChange
   }, [section.text, section.removed, section.active]);
 
   // All hooks must be called before any conditional return
-  const isAnimating = section.active && section.displayedText !== undefined;
+  const isTypewriting = section.active && section.displayedText !== undefined;
+  const isFading = section.active && section.displayedText === undefined;
   const isEditable = !section.active && !section.removing;
 
   const cls = section.removing ? 'section--removing'
@@ -56,7 +57,7 @@ export const ReportSection = memo(function ReportSection({ section, onTextChange
           exit={{ opacity: 0, height: 0, marginBottom: 0, overflow: 'hidden' }}
           transition={{ duration: 0.5, ease: 'easeOut' }}
         >
-          {isAnimating ? (
+          {isTypewriting ? (
             <p>{section.displayedText}<span className="cursor">▌</span></p>
           ) : (
             <p
@@ -64,6 +65,7 @@ export const ReportSection = memo(function ReportSection({ section, onTextChange
               contentEditable={isEditable}
               suppressContentEditableWarning
               onBlur={handleBlur}
+              style={isFading ? { opacity: 0.25, textDecoration: 'line-through', textDecorationColor: 'rgba(185,28,28,0.4)', transition: 'opacity 0.4s ease' } : undefined}
             />
           )}
         </motion.div>

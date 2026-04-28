@@ -81,7 +81,6 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         sections: state.sections.map(s => ({
           ...s,
           active: s.id === action.id,
-          displayedText: s.id === action.id ? '' : s.displayedText,
         })),
       };
 

@@ -24,8 +24,10 @@ export function useDemoRunner(
   }, [dispatch, manualStopRef]);
 
   const typewriterReplace = useCallback(async (sectionId: string, newText: string, charDelay = 18) => {
+    // Wait for fading phase (old text dims with strikethrough)
+    await sleep(600);
+    // Start typewriter — setting displayedText switches to typewriter branch
     dispatch({ type: 'SET_DISPLAYED_TEXT', id: sectionId, text: '' });
-    await sleep(150);
 
     let current = '';
     let lastDispatch = 0;
