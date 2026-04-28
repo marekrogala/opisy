@@ -1,5 +1,5 @@
 /* ============================================================
-   Opisy v3 — single-screen demo
+   Opisy v4 — list view + workspace demo
    ============================================================ */
 
 // ============== Utilities ==============
@@ -8,22 +8,17 @@ function $(sel, root = document) { return root.querySelector(sel); }
 function $$(sel, root = document) { return [...root.querySelectorAll(sel)]; }
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 function escapeHtml(s) {
-  return s.replace(/[&<>"']/g, c => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-  }[c]));
+  return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
-// ============== Templates catalogue ==============
-const TEMPLATES = [
-  { id: 'mr_kolano_prawe', icon: 'MR', title: 'MR kolana prawego',     meta: '12 sekcji · ostatnio dziś',   active: true },
-  { id: 'mr_kolano_lewe',  icon: 'MR', title: 'MR kolana lewego',      meta: '12 sekcji · ostatnio wczoraj' },
-  { id: 'mr_bark',         icon: 'MR', title: 'MR barku',              meta: '10 sekcji · ostatnio 25.04' },
-  { id: 'mr_kregoslup_ls', icon: 'MR', title: 'MR kręgosłupa L-S',     meta: '14 sekcji · ostatnio 21.04' },
-  { id: 'mr_skok',         icon: 'MR', title: 'MR stawu skokowego',    meta: '11 sekcji · ostatnio 18.04' },
-  { id: 'mr_biodro',       icon: 'MR', title: 'MR stawu biodrowego',   meta: '11 sekcji · ostatnio 10.04' },
-  { id: 'usg_brzuch',      icon: 'USG', title: 'USG jamy brzusznej',   meta: '10 sekcji · ostatnio 24.04' },
-  { id: 'tk_glowa',        icon: 'TK', title: 'TK głowy',              meta: '9 sekcji · ostatnio 23.04' },
-  { id: 'tk_klatka',       icon: 'TK', title: 'TK klatki piersiowej',  meta: '10 sekcji · ostatnio 15.04' },
+// ============== Reports list data ==============
+const REPORTS_LIST = [
+  { id: 1, date: '28.04.2026', time: '14:30', patient: 'Anna Kowalska',        exam: 'MR kolana prawego',       status: 'in_progress' },
+  { id: 2, date: '28.04.2026', time: '11:15', patient: 'Jan Nowak',             exam: 'MR barku',                status: 'done' },
+  { id: 3, date: '27.04.2026', time: '16:45', patient: 'Maria Wiśniewska',      exam: 'MR kręgosłupa L-S',       status: 'done' },
+  { id: 4, date: '27.04.2026', time: '09:00', patient: 'Piotr Zieliński',       exam: 'TK głowy',                status: 'done' },
+  { id: 5, date: '25.04.2026', time: '13:20', patient: 'Katarzyna Dąbrowska',   exam: 'MR stawu skokowego',      status: 'done' },
+  { id: 6, date: '25.04.2026', time: '10:00', patient: 'Tomasz Lewandowski',    exam: 'USG jamy brzusznej',      status: 'done' },
 ];
 
 // ============== Master template (MR knee R) ==============
@@ -31,7 +26,7 @@ const MASTER_TEMPLATE = {
   id: 'mr_kolano_prawe',
   title: 'REZONANS MAGNETYCZNY KOLANA PRAWEGO',
   sections: [
-    { id: 'wskazanie', label: 'Wskazanie',
+    { id: 'wskazanie',  label: 'Wskazanie',
       text: 'Wskazanie: ból kolana, podejrzenie uszkodzenia łąkotki przyśrodkowej. Uraz skrętny 3 tygodnie temu.',
       pending: false },
     { id: 'technika', label: 'Technika',
@@ -113,34 +108,92 @@ const DICTATION_SCRIPT = [
   },
 ];
 
-// ============== State ==============
+// ============== App state ==============
 const state = {
-  patient: { firstName: 'Anna', lastName: 'Kowalska', anonId: '#4471', doctorName: 'dr Kowalska' },
-  templateId: 'mr_kolano_prawe',
-  sections: clone(MASTER_TEMPLATE.sections),
-  startTime: null,
+  currentView: 'list',
+  sections: [],
   isRecording: false,
   storyRunning: false,
   storyDone: false,
   manualStop: false,
 };
 
-// ============== Initial render ==============
-function initApp() {
-  updateHeader();
-  renderPaper();
-  updateProgress();
-  // start demo after 1.5s
-  setTimeout(startDemo, 1500);
+// ============== View switching ==============
+function showView(name) {
+  state.currentView = name;
+  $('#viewList').classList.toggle('hidden', name !== 'list');
+  $('#viewWorkspace').classList.toggle('hidden', name !== 'workspace');
 }
 
-function updateHeader() {
-  const tpl = TEMPLATES.find(t => t.id === state.templateId);
-  $('#patientName').textContent = `${state.patient.firstName} ${state.patient.lastName}`;
-  $('#patientAnon').textContent = `Pacjent ${state.patient.anonId}`;
-  $('#paperTitle').textContent = tpl ? tpl.title : MASTER_TEMPLATE.title;
-  $('#paperMeta').textContent =
-    `Pacjent: ${state.patient.anonId} · Data: ${new Date().toLocaleDateString('pl-PL')} · Lekarz: ${state.patient.doctorName}`;
+function openWorkspace() {
+  showView('workspace');
+  initWorkspace();
+}
+
+function goToList() {
+  // Stop any running demo
+  state.manualStop = true;
+  state.storyRunning = false;
+  showView('list');
+}
+
+// ============== List view render ==============
+function renderList() {
+  const table = $('#reportsTable');
+  if (!table) return;
+  table.innerHTML = REPORTS_LIST.map(r => {
+    const badgeClass = r.status === 'done' ? 'status-badge--done' : 'status-badge--inprogress';
+    const badgeText = r.status === 'done' ? 'Zakończony' : 'W trakcie';
+    const activeClass = r.id === 1 ? 'report-row--active' : '';
+    return `<div class="report-row ${activeClass}" data-report-id="${r.id}">
+      <div class="report-row__datetime">${r.date}<span>${r.time}</span></div>
+      <div class="report-row__info">
+        <div class="report-row__patient">${escapeHtml(r.patient)}</div>
+        <div class="report-row__exam">${escapeHtml(r.exam)}</div>
+      </div>
+      <span class="status-badge ${badgeClass}">${badgeText}</span>
+    </div>`;
+  }).join('');
+
+  // Wire clicks — only first row opens workspace in this demo
+  $$('.report-row', table).forEach(row => {
+    row.addEventListener('click', () => {
+      const id = Number(row.dataset.reportId);
+      if (id === 1) openWorkspace();
+    });
+  });
+}
+
+// ============== Workspace init ==============
+function initWorkspace() {
+  // Reset state
+  state.sections = clone(MASTER_TEMPLATE.sections);
+  state.isRecording = false;
+  state.storyRunning = false;
+  state.storyDone = false;
+  state.manualStop = false;
+  _cleanupToastShown = false;
+  transcriptBlock = null;
+
+  // Reset transcript
+  const tr = $('#transcript');
+  if (tr) tr.innerHTML = '<div class="transcript__empty">Tu pojawią się słowa, które dyktuje radiolog…</div>';
+
+  // Reset export buttons
+  ['#dlWord', '#dlPdf'].forEach(sel => {
+    const el = $(sel);
+    if (el) { el.disabled = true; el.title = 'Dostępne po zakończeniu opisu'; el.classList.remove('pulsing'); }
+  });
+
+  // Reset done label
+  const doneEl = $('#doneLabel');
+  if (doneEl) { doneEl.textContent = ''; doneEl.classList.remove('visible'); }
+
+  setMic(false, 'Gotowy');
+  renderPaper();
+
+  // Auto-start demo after 1.5s
+  setTimeout(startDemo, 1500);
 }
 
 // ============== Paper render ==============
@@ -160,40 +213,35 @@ function renderPaper() {
     </div>`;
   }).join('');
 
-  // wire edit buttons
+  // Wire edit buttons
   $$('[data-edit]', body).forEach(btn => {
     btn.addEventListener('click', e => {
       e.stopPropagation();
-      const sid = btn.dataset.edit;
-      const sec = $(`.section[data-section="${sid}"]`);
-      if (!sec) return;
-      const p = sec.querySelector('p');
-      if (p.contentEditable === 'true') {
-        p.contentEditable = 'false';
-        sec.classList.remove('section--editing');
-        const obj = state.sections.find(x => x.id === sid);
-        if (obj) obj.text = p.innerText.trim();
-      } else {
-        p.contentEditable = 'true';
-        sec.classList.add('section--editing');
-        p.focus();
-        p.addEventListener('blur', () => {
-          p.contentEditable = 'false';
-          sec.classList.remove('section--editing');
-          const obj = state.sections.find(x => x.id === sid);
-          if (obj) obj.text = p.innerText.trim();
-        }, { once: true });
-      }
+      toggleSectionEdit(btn.dataset.edit);
     });
   });
 }
 
-// ============== Progress counter ==============
-function updateProgress() {
-  const total = state.sections.filter(s => !s.removed).length;
-  const locked = state.sections.filter(s => s.locked).length;
-  const el = $('#progressText');
-  if (el) el.textContent = `${locked} / ${total} sekcji`;
+function toggleSectionEdit(sid) {
+  const sectionEl = $(`.section[data-section="${sid}"]`);
+  if (!sectionEl) return;
+  const p = sectionEl.querySelector('p');
+  if (!p) return;
+  const obj = state.sections.find(x => x.id === sid);
+  if (p.contentEditable === 'true') {
+    p.contentEditable = 'false';
+    sectionEl.classList.remove('section--editing');
+    if (obj) obj.text = p.innerText.trim();
+  } else {
+    p.contentEditable = 'true';
+    sectionEl.classList.add('section--editing');
+    p.focus();
+    p.addEventListener('blur', () => {
+      p.contentEditable = 'false';
+      sectionEl.classList.remove('section--editing');
+      if (obj) obj.text = p.innerText.trim();
+    }, { once: true });
+  }
 }
 
 // ============== Mic UI ==============
@@ -201,15 +249,12 @@ let micLevelId = null;
 
 function setMic(active, statusText) {
   state.isRecording = active;
-  const btn = $('#micBtn');
+  $('#micBtn')?.classList.toggle('active', active);
   const status = $('#micStatus');
   const level = $('#micLevel');
   const dot = $('#liveDot');
-
-  btn?.classList.toggle('active', active);
   if (status) status.textContent = statusText;
   if (dot) dot.classList.toggle('live', active);
-
   clearInterval(micLevelId);
   if (active) {
     micLevelId = setInterval(() => {
@@ -220,32 +265,27 @@ function setMic(active, statusText) {
   }
 }
 
-// ============== Live transcript stream ==============
+// ============== Live transcript ==============
 let transcriptBlock = null;
 
 function clearTranscriptEmpty() {
-  const empty = $('#transcript .transcript__empty');
-  if (empty) empty.remove();
+  $('#transcript .transcript__empty')?.remove();
 }
 
 async function streamTranscript(text, perWordMs = 95) {
   clearTranscriptEmpty();
   const tr = $('#transcript');
-
-  // mark previous block as done
+  if (!tr) return;
   if (transcriptBlock) {
     transcriptBlock.classList.add('done');
     const br = document.createElement('span');
     br.className = 'transcript__break';
     tr.appendChild(br);
   }
-
   transcriptBlock = document.createElement('div');
   transcriptBlock.className = 'transcript__block';
   tr.appendChild(transcriptBlock);
-
-  const words = text.split(/\s+/);
-  for (const w of words) {
+  for (const w of text.split(/\s+/)) {
     if (state.manualStop) break;
     const span = document.createElement('span');
     span.className = 'transcript__word transcript__word--active';
@@ -254,50 +294,36 @@ async function streamTranscript(text, perWordMs = 95) {
     tr.scrollTop = tr.scrollHeight;
     await sleep(perWordMs + Math.random() * 55);
   }
-
-  // mark all words as done
   $$('.transcript__word--active', transcriptBlock).forEach(w => {
     w.classList.remove('transcript__word--active');
     w.classList.add('transcript__word--done');
   });
 }
 
-// ============== Typewriter replacement ==============
+// ============== Typewriter ==============
 async function typewriterReplace(sectionEl, newText, charDelay = 22) {
   const p = sectionEl.querySelector('p');
   if (!p) return;
-
-  // Fade out old text
   p.classList.add('text--fading');
   await sleep(400);
-
-  // Clear and start typing
   p.textContent = '';
   p.classList.remove('text--fading');
-
   const cursor = document.createElement('span');
   cursor.className = 'cursor';
   cursor.textContent = '▌';
-
   for (let i = 0; i < newText.length; i++) {
     if (newText[i] === '\n') {
-      if (cursor.parentNode) cursor.remove();
+      cursor.remove();
       p.appendChild(document.createElement('br'));
     } else {
-      if (cursor.parentNode) cursor.remove();
+      cursor.remove();
       p.appendChild(document.createTextNode(newText[i]));
     }
     p.appendChild(cursor);
-
-    // scroll section into view periodically
     if (i % 40 === 0) sectionEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-
-    // variable delay for natural feel; faster for spaces/punctuation
     const base = charDelay + (Math.random() * 10) - 5;
-    const delay = (' ,.'.includes(newText[i])) ? base * 0.3 : base;
-    await sleep(delay);
+    await sleep(' ,.'.includes(newText[i]) ? base * 0.3 : base);
   }
-
   cursor.remove();
 }
 
@@ -305,80 +331,41 @@ async function typewriterReplace(sectionEl, newText, charDelay = 22) {
 async function runDictationStep(step) {
   const sec = state.sections.find(s => s.id === step.target);
   if (!sec) return;
-
-  // Mark section active
   state.sections.forEach(s => s.active = false);
   sec.active = true;
-
-  // Update section element state directly (no full re-render to preserve typewriter)
   const sectionEl = $(`.section[data-section="${step.target}"]`);
   if (sectionEl) {
     sectionEl.className = 'section section--active';
     sectionEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
-
   setMic(true, 'Słucham…');
   await streamTranscript(step.transcript, 95);
-
   await sleep(420);
   setMic(false, 'Przetwarzam…');
   await sleep(500);
-
-  // Typewriter replacement
-  if (sectionEl) {
-    await typewriterReplace(sectionEl, step.newText);
-  }
-
-  // Lock section
+  if (sectionEl) await typewriterReplace(sectionEl, step.newText);
   sec.active = false;
   sec.pending = false;
   sec.locked = true;
   sec.text = step.newText;
-
   if (sectionEl) {
     sectionEl.className = 'section section--locked';
-    // re-add edit button if not present
     if (!sectionEl.querySelector('.section__edit')) {
-      const editBtn = document.createElement('button');
-      editBtn.className = 'section__edit';
-      editBtn.dataset.edit = step.target;
-      editBtn.textContent = 'edytuj';
-      editBtn.addEventListener('click', e => {
-        e.stopPropagation();
-        const p = sectionEl.querySelector('p');
-        if (!p) return;
-        if (p.contentEditable === 'true') {
-          p.contentEditable = 'false';
-          sectionEl.classList.remove('section--editing');
-          sec.text = p.innerText.trim();
-        } else {
-          p.contentEditable = 'true';
-          sectionEl.classList.add('section--editing');
-          p.focus();
-          p.addEventListener('blur', () => {
-            p.contentEditable = 'false';
-            sectionEl.classList.remove('section--editing');
-            sec.text = p.innerText.trim();
-          }, { once: true });
-        }
-      });
-      sectionEl.appendChild(editBtn);
+      const btn = document.createElement('button');
+      btn.className = 'section__edit';
+      btn.dataset.edit = step.target;
+      btn.textContent = 'edytuj';
+      btn.addEventListener('click', e => { e.stopPropagation(); toggleSectionEdit(step.target); });
+      sectionEl.appendChild(btn);
     }
   }
-
   if (step.showLockToast) showToast('Sekcja zablokowana — model jej nie zmieni');
-
-  // Handle cleanup targets
-  if (step.removeTargets?.length) {
-    await applyCleanup(step.removeTargets);
-  }
-
-  updateProgress();
+  if (step.removeTargets?.length) await applyCleanup(step.removeTargets);
   setMic(false, 'Gotowy');
   flashSave();
 }
 
-// ============== Cleanup: fade+collapse removed sections ==============
+// ============== Cleanup ==============
 let _cleanupToastShown = false;
 
 async function applyCleanup(ids) {
@@ -390,12 +377,10 @@ async function applyCleanup(ids) {
     const sec = state.sections.find(s => s.id === id);
     if (!sec || sec.locked || sec.removed) continue;
     const el = $(`.section[data-section="${id}"]`);
-    if (el) {
-      el.classList.add('section--removing');
-    }
+    if (el) el.classList.add('section--removing');
     await sleep(780);
     sec.removed = true;
-    if (el) el.remove();
+    el?.remove();
   }
 }
 
@@ -407,62 +392,45 @@ function flashSave() {
   setTimeout(() => { chip.textContent = 'Zapisane'; }, 700);
 }
 
-// ============== Full story ==============
+// ============== Full demo ==============
 async function startDemo() {
   if (state.storyRunning || state.storyDone) return;
   state.storyRunning = true;
-  state.startTime = Date.now();
-
-  // Disable download buttons during dictation
-  ['#dlWord', '#dlPdf'].forEach(sel => {
-    const el = $(sel);
-    if (el) { el.disabled = true; el.title = 'Dostępne po zakończeniu opisu'; }
-  });
-
   for (const step of DICTATION_SCRIPT) {
     if (state.manualStop) break;
     await runDictationStep(step);
     await sleep(850);
   }
-
   state.storyRunning = false;
-  state.storyDone = true;
-
-  // Re-enable download buttons
-  ['#dlWord', '#dlPdf'].forEach(sel => {
-    const el = $(sel);
-    if (el) { el.disabled = false; el.title = ''; }
-  });
-
-  setMic(false, 'Opis gotowy');
-
-  // Show completion banner in paper
-  const paper = $('#paper');
-  if (paper) {
-    const locked = state.sections.filter(s => s.locked).length;
-    const total = state.sections.filter(s => !s.removed).length;
-    const banner = document.createElement('div');
-    banner.className = 'paper__banner';
-    banner.innerHTML = `Opis gotowy · ${locked}/${total} sekcji zweryfikowanych<div class="banner__bar"></div>`;
+  state.storyDone = !state.manualStop;
+  if (state.storyDone) {
+    ['#dlWord', '#dlPdf'].forEach(sel => {
+      const el = $(sel);
+      if (el) { el.disabled = false; el.title = ''; }
+    });
+    setMic(false, 'Opis gotowy');
+    $('#dlPdf')?.classList.add('pulsing');
+    const doneEl = $('#doneLabel');
+    if (doneEl) { doneEl.textContent = 'Opis gotowy'; doneEl.classList.add('visible'); }
+    // Completion banner in paper
     const body = $('#paperBody');
-    if (body) body.insertBefore(banner, body.firstChild);
+    if (body) {
+      const banner = document.createElement('div');
+      banner.className = 'paper__banner';
+      banner.textContent = 'Opis gotowy';
+      body.insertBefore(banner, body.firstChild);
+    }
   }
-
-  // Pulse the PDF button
-  $('#dlPdf')?.classList.add('pulsing');
-
-  updateProgress();
 }
 
-// ============== Mic button click ==============
-$('#micBtn')?.addEventListener('click', () => {
+// ============== Mic button ==============
+document.addEventListener('click', e => {
+  if (!e.target.closest('#micBtn')) return;
   if (state.storyRunning) {
     state.manualStop = true;
     setMic(false, 'Zatrzymano');
     state.storyRunning = false;
-    return;
-  }
-  if (state.isRecording) {
+  } else if (state.isRecording) {
     setMic(false, 'Gotowy');
   } else {
     setMic(true, 'Słucham…');
@@ -470,50 +438,27 @@ $('#micBtn')?.addEventListener('click', () => {
   }
 });
 
-// ============== Restart ==============
-function fullReset() {
-  state.sections = clone(MASTER_TEMPLATE.sections);
-  state.startTime = null;
-  state.isRecording = false;
-  state.storyRunning = false;
-  state.storyDone = false;
-  state.manualStop = false;
-  _cleanupToastShown = false;
-  transcriptBlock = null;
-
-  // Reset transcript
-  const tr = $('#transcript');
-  if (tr) tr.innerHTML = '<div class="transcript__empty">Tu pojawią się słowa, które dyktuje radiolog…</div>';
-
-  // Reset PDF button
-  $('#dlPdf')?.classList.remove('pulsing');
-
-  setMic(false, 'Gotowy');
-  updateHeader();
-  renderPaper();
-  updateProgress();
-
-  // Restart demo after short delay
-  setTimeout(startDemo, 1500);
-}
-
-$('#restartBtn')?.addEventListener('click', fullReset);
+// ============== Navigation ==============
+document.addEventListener('click', e => {
+  if (e.target.closest('#backBtn') || e.target.closest('#newExamBtn')) goToList();
+});
 
 // ============== Export helpers ==============
-function buildExportText() {
+function buildExportData() {
   return {
     title: MASTER_TEMPLATE.title,
-    patient: 'Pacjent ' + state.patient.anonId,
-    date: new Date().toLocaleDateString('pl-PL'),
-    doctorName: state.patient.doctorName,
+    patientName: 'Anna Kowalska',
+    pesel: '84062512345',
+    date: '28.04.2026',
+    doctorName: 'dr Kowalska',
     sections: state.sections.filter(s => !s.removed),
   };
 }
 
 function buildPlainText() {
-  const ex = buildExportText();
+  const ex = buildExportData();
   let out = ex.title + '\n' + '='.repeat(ex.title.length) + '\n\n';
-  out += `Pacjent: ${ex.patient}    Data: ${ex.date}    Lekarz: ${ex.doctorName}\n\n`;
+  out += `Pacjent: ${ex.patientName}    PESEL: ${ex.pesel}    Data: ${ex.date}    Lekarz: ${ex.doctorName}\n\n`;
   for (const s of ex.sections) {
     if (s.id === 'wnioski') out += '\nWnioski:\n' + s.text + '\n';
     else out += s.text + '\n';
@@ -523,10 +468,7 @@ function buildPlainText() {
 }
 
 function makeFileName(ext) {
-  const tpl = (TEMPLATES.find(t => t.id === state.templateId)?.title || 'Opis')
-    .replace(/[^A-Za-z0-9ąćęłńóśźżĄĆĘŁŃÓŚŹŻ ]/g, '').replace(/\s+/g, '_');
-  const date = new Date().toISOString().slice(0, 10);
-  return `${tpl}_Pacjent${state.patient.anonId.replace('#', '')}_${date}.${ext}`;
+  return `MR_Kolano_Prawe_Anna_Kowalska_28.04.2026.${ext}`;
 }
 
 function triggerDownload(blob, filename) {
@@ -546,9 +488,13 @@ async function downloadWord() {
   if (btn) { btn.textContent = 'Generuję…'; btn.disabled = true; }
   try {
     const { Document, Packer, Paragraph, TextRun, AlignmentType } = docx;
-    const ex = buildExportText();
+    const ex = buildExportData();
     const children = [];
-
+    children.push(new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { after: 100 },
+      children: [new TextRun({ text: 'PRACOWNIA DIAGNOSTYKI OBRAZOWEJ', size: 16, color: '9a9a9a' })],
+    }));
     children.push(new Paragraph({
       alignment: AlignmentType.CENTER,
       spacing: { after: 200 },
@@ -556,10 +502,14 @@ async function downloadWord() {
     }));
     children.push(new Paragraph({
       alignment: AlignmentType.CENTER,
-      spacing: { after: 320 },
-      children: [new TextRun({ text: `Pacjent: ${ex.patient}    Data: ${ex.date}    Lekarz: ${ex.doctorName}`, size: 20, color: '6b6b6b' })],
+      spacing: { after: 100 },
+      children: [new TextRun({ text: `Pacjent: ${ex.patientName}    PESEL: ${ex.pesel}`, size: 20, color: '3f3f3f' })],
     }));
-
+    children.push(new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { after: 320 },
+      children: [new TextRun({ text: `Data: ${ex.date}    Lekarz: ${ex.doctorName}`, size: 20, color: '3f3f3f' })],
+    }));
     for (const s of ex.sections) {
       if (s.id === 'wnioski') {
         children.push(new Paragraph({
@@ -567,25 +517,17 @@ async function downloadWord() {
           children: [new TextRun({ text: 'Wnioski:', bold: true, size: 24 })],
         }));
         for (const line of s.text.split('\n')) {
-          children.push(new Paragraph({
-            spacing: { after: 80 },
-            children: [new TextRun({ text: line, size: 22 })],
-          }));
+          children.push(new Paragraph({ spacing: { after: 80 }, children: [new TextRun({ text: line, size: 22 })] }));
         }
       } else {
-        children.push(new Paragraph({
-          spacing: { after: 120 },
-          children: [new TextRun({ text: s.text, size: 22 })],
-        }));
+        children.push(new Paragraph({ spacing: { after: 120 }, children: [new TextRun({ text: s.text, size: 22 })] }));
       }
     }
-
     children.push(new Paragraph({
       alignment: AlignmentType.RIGHT,
       spacing: { before: 480 },
       children: [new TextRun({ text: `${ex.doctorName}, radiolog`, italics: true, size: 22 })],
     }));
-
     const wordDoc = new Document({ sections: [{ children }] });
     const blob = await Packer.toBlob(wordDoc);
     triggerDownload(blob, makeFileName('docx'));
@@ -599,42 +541,27 @@ async function downloadWord() {
 }
 
 // ============== Polish font loading ==============
-let _fontB64 = null;
-let _fontBoldB64 = null;
+let _fontB64 = null, _fontBoldB64 = null;
 
-async function loadPolishFont() {
-  if (_fontB64) return _fontB64;
+async function loadFont(url, cache) {
+  if (cache) return cache;
   try {
-    const resp = await fetch('https://cdn.jsdelivr.net/npm/dejavu-fonts-ttf@2.37.3/ttf/DejaVuSans.ttf');
-    const buf = await resp.arrayBuffer();
+    const buf = await (await fetch(url)).arrayBuffer();
     const bytes = new Uint8Array(buf);
-    let binary = '';
-    for (let i = 0; i < bytes.length; i += 4096) {
-      binary += String.fromCharCode.apply(null, bytes.subarray(i, i + 4096));
-    }
-    _fontB64 = btoa(binary);
-    return _fontB64;
-  } catch (e) {
-    console.warn('Polish font failed, falling back:', e);
-    return null;
-  }
+    let bin = '';
+    for (let i = 0; i < bytes.length; i += 4096)
+      bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 4096));
+    return btoa(bin);
+  } catch { return null; }
 }
 
+async function loadPolishFont() {
+  _fontB64 = await loadFont('https://cdn.jsdelivr.net/npm/dejavu-fonts-ttf@2.37.3/ttf/DejaVuSans.ttf', _fontB64);
+  return _fontB64;
+}
 async function loadPolishFontBold() {
-  if (_fontBoldB64) return _fontBoldB64;
-  try {
-    const resp = await fetch('https://cdn.jsdelivr.net/npm/dejavu-fonts-ttf@2.37.3/ttf/DejaVuSans-Bold.ttf');
-    const buf = await resp.arrayBuffer();
-    const bytes = new Uint8Array(buf);
-    let binary = '';
-    for (let i = 0; i < bytes.length; i += 4096) {
-      binary += String.fromCharCode.apply(null, bytes.subarray(i, i + 4096));
-    }
-    _fontBoldB64 = btoa(binary);
-    return _fontBoldB64;
-  } catch (e) {
-    return null;
-  }
+  _fontBoldB64 = await loadFont('https://cdn.jsdelivr.net/npm/dejavu-fonts-ttf@2.37.3/ttf/DejaVuSans-Bold.ttf', _fontBoldB64);
+  return _fontBoldB64;
 }
 
 // ============== PDF download ==============
@@ -651,9 +578,7 @@ async function downloadPdf() {
     const pageH = doc.internal.pageSize.getHeight();
     const usableW = pageW - margin * 2;
     let y = margin;
-
-    const ex = buildExportText();
-
+    const ex = buildExportData();
     const fontB64 = await loadPolishFont();
     const boldB64 = await loadPolishFontBold();
     let fontName = 'helvetica';
@@ -667,26 +592,38 @@ async function downloadPdf() {
       fontName = 'DejaVuSans';
     }
 
+    // Institution header
+    doc.setFont(fontName, 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(150);
+    doc.text('PRACOWNIA DIAGNOSTYKI OBRAZOWEJ', pageW / 2, y, { align: 'center' });
+    y += 18;
+
+    // Title
     doc.setFont(fontName, 'bold');
     doc.setFontSize(13);
+    doc.setTextColor(10);
     const titleLines = doc.splitTextToSize(ex.title, usableW);
     doc.text(titleLines, pageW / 2, y, { align: 'center' });
-    y += 18 * titleLines.length;
+    y += 18 * titleLines.length + 4;
 
+    // Patient data
     doc.setFont(fontName, 'normal');
     doc.setFontSize(9);
-    doc.setTextColor(110);
-    doc.text(`Pacjent: ${ex.patient}    Data: ${ex.date}    Lekarz: ${ex.doctorName}`, pageW / 2, y, { align: 'center' });
-    y += 18;
-    doc.setDrawColor(180);
+    doc.setTextColor(63);
+    doc.text(`Pacjent: ${ex.patientName}    PESEL: ${ex.pesel}`, pageW / 2, y, { align: 'center' });
+    y += 14;
+    doc.text(`Data badania: ${ex.date}    Lekarz opisujący: ${ex.doctorName}`, pageW / 2, y, { align: 'center' });
+    y += 16;
+    doc.setDrawColor(30);
+    doc.setLineWidth(1);
     doc.line(margin, y, pageW - margin, y);
     y += 18;
-    doc.setTextColor(30);
+    doc.setTextColor(10);
     doc.setFontSize(11);
 
     const writeParagraph = (text, opts = {}) => {
-      if (opts.bold) doc.setFont(fontName, 'bold');
-      else doc.setFont(fontName, 'normal');
+      doc.setFont(fontName, opts.bold ? 'bold' : 'normal');
       const lines = doc.splitTextToSize(text, usableW);
       for (const line of lines) {
         if (y > pageH - margin) { doc.addPage(); y = margin; }
@@ -722,8 +659,10 @@ async function downloadPdf() {
   }
 }
 
-$('#dlWord')?.addEventListener('click', downloadWord);
-$('#dlPdf')?.addEventListener('click', downloadPdf);
+document.addEventListener('click', e => {
+  if (e.target.closest('#dlWord')) downloadWord();
+  if (e.target.closest('#dlPdf')) downloadPdf();
+});
 
 // ============== Toast ==============
 let toastTimer = null;
@@ -742,4 +681,10 @@ function showToast(msg) {
 }
 
 // ============== Boot ==============
-initApp();
+renderList();
+showView('list');
+
+// Auto-open first report after 2s
+setTimeout(() => {
+  if (state.currentView === 'list') openWorkspace();
+}, 2000);

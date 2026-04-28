@@ -6,15 +6,16 @@
   <title>Opisy — Asystent Radiologa</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
   <script src="https://unpkg.com/docx@8.5.0/build/index.umd.min.js"></script>
   <script src="https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 </head>
 <body>
-  <div id="app" class="app">
+<div id="app" class="app">
 
-    <!-- HEADER BAR -->
+  <!-- ===== VIEW: LIST ===== -->
+  <div id="viewList" class="view view--list">
     <header class="header">
       <div class="header__left">
         <div class="brand">
@@ -28,46 +29,58 @@
           <span class="demo-pill">DEMO</span>
         </div>
       </div>
-
-      <div class="header__center">
-        <div class="patient-info">
-          <span class="patient-info__name" id="patientName">Anna Kowalska</span>
-          <span class="patient-info__arrow">→</span>
-          <span class="patient-info__anon" id="patientAnon">Pacjent #4471</span>
-          <span class="patient-info__sep">·</span>
-          <select class="tpl-select" id="tplSelect">
-            <option value="mr_kolano_prawe">MR kolana prawego</option>
-            <option value="mr_kolano_lewe" disabled>MR kolana lewego</option>
-            <option value="mr_bark" disabled>MR barku</option>
-            <option value="mr_kregoslup_ls" disabled>MR kręgosłupa L-S</option>
-            <option value="mr_skok" disabled>MR stawu skokowego</option>
-            <option value="mr_biodro" disabled>MR stawu biodrowego</option>
-            <option value="usg_brzuch" disabled>USG jamy brzusznej</option>
-            <option value="tk_glowa" disabled>TK głowy</option>
-            <option value="tk_klatka" disabled>TK klatki piersiowej</option>
-          </select>
-        </div>
-      </div>
-
       <div class="header__right">
-        <button class="hbtn hbtn--ghost" id="restartBtn">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-          Restart
-        </button>
-        <button class="hbtn hbtn--ghost" id="dlWord">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-          Word
-        </button>
-        <button class="hbtn hbtn--primary" id="dlPdf">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          Pobierz PDF
+        <button class="hbtn hbtn--primary" id="newExamBtn">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Nowe badanie
         </button>
       </div>
     </header>
 
-    <!-- MAIN TWO-COLUMN AREA -->
-    <div class="workspace">
+    <main class="list-main">
+      <div class="list-container">
+        <h2 class="list-heading">Twoje opisy</h2>
+        <div class="reports-table" id="reportsTable"></div>
+      </div>
+    </main>
+  </div>
 
+  <!-- ===== VIEW: WORKSPACE ===== -->
+  <div id="viewWorkspace" class="view view--workspace hidden">
+    <header class="header">
+      <div class="header__left">
+        <div class="brand">
+          <span class="brand__mark">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+              <circle cx="6" cy="6" r="5" fill="white" opacity="0.25"/>
+              <path d="M6 1a5 5 0 0 1 0 10V1z" fill="white"/>
+            </svg>
+          </span>
+          <span class="brand__name">Opisy</span>
+        </div>
+        <span class="header-sep"></span>
+        <button class="hbtn hbtn--ghost" id="backBtn">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          Lista opisów
+        </button>
+      </div>
+      <div class="header__right">
+        <button class="hbtn hbtn--ghost" id="dlWord" disabled title="Dostępne po zakończeniu opisu">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          Word
+        </button>
+        <button class="hbtn hbtn--primary" id="dlPdf" disabled title="Dostępne po zakończeniu opisu">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Pobierz PDF
+        </button>
+        <div class="save-chip">
+          <span class="save-chip__dot"></span>
+          <span id="saveChipText">Zapisane</span>
+        </div>
+      </div>
+    </header>
+
+    <div class="workspace">
       <!-- LEFT: Transcript panel -->
       <aside class="transcript-panel">
         <div class="tp-header">
@@ -77,46 +90,60 @@
         <div class="transcript" id="transcript">
           <div class="transcript__empty">Tu pojawią się słowa, które dyktuje radiolog…</div>
         </div>
+        <div class="tp-interim" id="interimText"></div>
       </aside>
 
       <!-- RIGHT: Report document -->
       <main class="report-panel">
         <div class="paper" id="paper">
-          <header class="paper__head">
-            <h1 id="paperTitle">REZONANS MAGNETYCZNY KOLANA PRAWEGO</h1>
-            <div class="paper__meta" id="paperMeta">Pacjent: #4471 · Data: —</div>
-          </header>
+          <div class="paper__institution">PRACOWNIA DIAGNOSTYKI OBRAZOWEJ</div>
+          <h1 class="paper__title" id="paperTitle">REZONANS MAGNETYCZNY KOLANA PRAWEGO</h1>
+          <div class="paper__divider"></div>
+          <div class="paper__fields">
+            <div class="doc-field">
+              <span class="doc-field__label">Pacjent:</span>
+              <span class="doc-field__value" contenteditable="true" data-field="patientName">Anna Kowalska</span>
+            </div>
+            <div class="doc-field">
+              <span class="doc-field__label">PESEL:</span>
+              <span class="doc-field__value" contenteditable="true" data-field="pesel">84062512345</span>
+            </div>
+            <div class="doc-field">
+              <span class="doc-field__label">Data badania:</span>
+              <span class="doc-field__value" contenteditable="true" data-field="date">28.04.2026</span>
+            </div>
+            <div class="doc-field">
+              <span class="doc-field__label">Lekarz opisujący:</span>
+              <span class="doc-field__value" contenteditable="true" data-field="doctor">dr Kowalska</span>
+            </div>
+          </div>
+          <div class="paper__divider"></div>
           <div class="paper__body" id="paperBody"></div>
+          <div class="paper__signature"><span id="sigName">dr Kowalska, radiolog</span></div>
         </div>
       </main>
-
     </div>
 
     <!-- BOTTOM BAR -->
     <div class="bottombar">
-      <button class="mic-btn" id="micBtn" title="Start/stop nagrywania">
+      <button class="mic-btn" id="micBtn" title="Demo: kliknij aby zatrzymać">
         <div class="mic-btn__halo"></div>
         <div class="mic-btn__core">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="1" width="6" height="11" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="21" x2="12" y2="17"/></svg>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="1" width="6" height="11" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="21" x2="12" y2="17"/></svg>
         </div>
       </button>
       <div class="bottombar__meter">
         <div class="meter-bar"><span id="micLevel"></span></div>
       </div>
       <div class="bottombar__status" id="micStatus">Gotowy</div>
-      <div class="bottombar__progress" id="progressText">0 / 12 sekcji</div>
       <div class="bottombar__spacer"></div>
-      <div class="save-chip">
-        <span class="save-chip__dot"></span>
-        <span id="saveChipText">Zapisane</span>
-      </div>
+      <div class="bottombar__done" id="doneLabel"></div>
     </div>
-
   </div>
 
-  <!-- Toast notification -->
-  <div class="toast" id="toast" hidden></div>
+</div>
 
-  <script src="app.js"></script>
+<div class="toast" id="toast" hidden></div>
+<script src="app.js"></script>
 </body>
 </html>
