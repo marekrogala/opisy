@@ -244,26 +244,11 @@ function initDictation() {
   if (!state.startTime) state.startTime = Date.now();
   renderSections();
   renderPaper();
-  startTimer();
-
   // auto-run story once
   if (!state.storyRunning && !state.storyDone) {
     state.storyRunning = true;
     setTimeout(runFullStory, 300);
   }
-}
-
-let liveTimerId = null;
-function startTimer() {
-  clearInterval(liveTimerId);
-  liveTimerId = setInterval(() => {
-    if (!state.startTime) return;
-    const s = Math.floor((Date.now() - state.startTime) / 1000);
-    const m = Math.floor(s / 60);
-    const sec = s % 60;
-    const el = $('#liveTime');
-    if (el) el.textContent = `${m}:${String(sec).padStart(2, '0')}`;
-  }, 500);
 }
 
 // ============== Renderers ==============
@@ -286,13 +271,6 @@ function renderSections() {
   const locked = state.sections.filter(s => s.locked).length;
   const cnt = $('#sectionCount');
   if (cnt) cnt.textContent = `${locked} / ${total} zweryfikowane`;
-  const liveLocked = $('#liveLocked'); if (liveLocked) liveLocked.textContent = locked;
-
-  // word count
-  const words = state.sections.filter(s => !s.removed)
-    .map(s => s.text.split(/\s+/).filter(Boolean).length).reduce((a,b)=>a+b, 0);
-  const live = $('#liveOutWords'); if (live) live.textContent = words;
-  const dict = $('#liveDictWords'); if (dict) dict.textContent = state.totalDictatedWords;
 }
 
 function sectionStateClass(s) {
@@ -550,7 +528,7 @@ async function runFullStory() {
     const locked = state.sections.filter(s => s.locked).length;
     const total = state.sections.filter(s => !s.removed).length;
     const elapsed = state.startTime ? Math.round((Date.now() - state.startTime) / 1000) : 0;
-    banner.innerHTML = `<span>Opis gotowy · ${locked}/${total} zweryfikowane · ${Math.floor(elapsed/60)} min ${elapsed%60} s · ~8 min szybciej niż ręcznie</span><div class="banner__progress"></div>`;
+    banner.innerHTML = `<span>Opis gotowy · ${locked}/${total} zweryfikowane</span><div class="banner__progress"></div>`;
     paper.prepend(banner);
   }
 
@@ -628,15 +606,6 @@ function initExport() {
     <p style="margin-top:36px; text-align:right;"><em>${escapeHtml(state.patient.doctorName)}, radiolog</em></p>
   `;
 
-  // stats
-  const elapsed = state.startTime ? Math.round((Date.now() - state.startTime) / 1000) : 134;
-  $('#statTime').textContent = `${Math.floor(elapsed/60)} min ${elapsed%60} s`;
-  $('#statWords').textContent = state.totalDictatedWords;
-  const out = ex.sections.map(s => s.text.split(/\s+/).filter(Boolean).length).reduce((a,b)=>a+b,0);
-  $('#statOutput').textContent = out;
-  const manualMins = Math.max(elapsed + 180, 480);
-  const savedSec = manualMins - elapsed;
-  $('#statSave').textContent = `~${Math.round(savedSec / 60)} min`;
 }
 
 // ============== Real downloads ==============
