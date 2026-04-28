@@ -159,7 +159,7 @@ function renderList() {
   $$('.report-row', table).forEach(row => {
     row.addEventListener('click', () => {
       const id = Number(row.dataset.reportId);
-      if (id === 1) openWorkspace();
+      if (id === 1) { openWorkspace(); setTimeout(startDemo, 1500); }
     });
   });
 }
@@ -191,9 +191,6 @@ function initWorkspace() {
 
   setMic(false, 'Gotowy');
   renderPaper();
-
-  // Auto-start demo after 1.5s
-  setTimeout(startDemo, 1500);
 }
 
 // ============== Paper render ==============
@@ -570,6 +567,11 @@ $('#newExamModal')?.addEventListener('keydown', e => {
   if (e.key === 'Escape') { e.preventDefault(); hideNewExamModal(); }
 });
 
+// Close modal on backdrop click
+$('#newExamModal')?.addEventListener('click', e => {
+  if (e.target === $('#newExamModal')) hideNewExamModal();
+});
+
 // ============== Export helpers ==============
 function buildExportData() {
   const readField = (field) => {
@@ -820,7 +822,10 @@ function showToast(msg) {
 renderList();
 showView('list');
 
-// Auto-open first report after 2s
+// Auto-open first report with demo after 2s
 setTimeout(() => {
-  if (state.currentView === 'list') openWorkspace();
+  if (state.currentView === 'list') {
+    openWorkspace();
+    setTimeout(startDemo, 1500);
+  }
 }, 2000);
